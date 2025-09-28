@@ -39,9 +39,9 @@ class LLMAnalyzer:
         )
         
         # Модель для анализа
-        self.analysis_model = "qwen/qwen-2.5-7b-instruct"
+        self.analysis_model = "google/gemini-2.5-flash-preview-09-2025"
         
-        # Модель для оценки (используем Gemini как в оригинальном коде)
+        # Модель для оценки (используем ту же модель для оценки)
         self.evaluation_model = "google/gemini-2.5-flash-preview-09-2025"
         
         logger.info(f"LLM Analyzer инициализирован с моделью: {self.analysis_model}")
