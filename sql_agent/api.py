@@ -4,13 +4,12 @@ REST API для SQL-agent
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import JSONResponse
-from typing import Optional
 import logging
 
 from .models import (
-    OptimizationRequest, 
-    TaskCreateResponse, 
-    TaskStatusResponse, 
+    OptimizationRequest,
+    TaskCreateResponse,
+    TaskStatusResponse,
     TaskResultResponse,
     TaskStatus
 )
@@ -22,7 +21,6 @@ try:
     log_rotator = setup_logging()
 except ImportError:
     # Fallback если ротатор недоступен
-    import logging
     logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger(__name__)

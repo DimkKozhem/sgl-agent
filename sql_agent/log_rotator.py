@@ -9,14 +9,15 @@ import logging
 import logging.handlers
 import threading
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional
 import schedule
+
 
 class LogRotator:
     """Класс для управления ротацией логов"""
     
-    def __init__(self, 
+    def __init__(self,
                  log_dir: str = "logs",
                  max_files: int = 24,  # Хранить логи за 24 часа
                  log_format: str = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'):

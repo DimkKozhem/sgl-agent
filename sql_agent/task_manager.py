@@ -3,9 +3,7 @@
 """
 
 import asyncio
-import time
-import uuid
-from typing import Dict, Optional, List
+from typing import Dict, Optional
 from datetime import datetime, timedelta
 from .models import Task, TaskStatus, OptimizationRequest, OptimizationResult
 from .llm_analyzer import LLMAnalyzer
