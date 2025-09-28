@@ -62,6 +62,9 @@ class LLMAnalyzer:
             user_input = json.dumps(request_data, ensure_ascii=False, indent=2)
             
             logger.info("Отправляем запрос к LLM для анализа БД")
+            logger.info(f"📤 ЗАПРОС К LLM (модель: {self.analysis_model}):")
+            logger.info(f"System prompt: {system_prompt[:200]}...")
+            logger.info(f"User input: {user_input[:500]}...")
             
             # Отправляем запрос к LLM
             response = self.client.chat.completions.create(
@@ -80,6 +83,8 @@ class LLMAnalyzer:
             
             llm_output = response.choices[0].message.content
             logger.info("Получен ответ от LLM")
+            logger.info(f"📥 ОТВЕТ ОТ LLM:")
+            logger.info(f"Полный ответ: {llm_output}")
             
             # Парсим JSON ответ
             try:
@@ -127,6 +132,9 @@ class LLMAnalyzer:
             LLM Response: {output}
             """
             
+            logger.info(f"📤 ЗАПРОС К МОДЕЛИ ОЦЕНКИ (модель: {self.evaluation_model}):")
+            logger.info(f"Промпт для оценки: {prompt[:300]}...")
+            
             response = self.client.chat.completions.create(
                 model=self.evaluation_model,
                 messages=[{"role": "user", "content": prompt}],
@@ -139,17 +147,22 @@ class LLMAnalyzer:
             )
             
             score_text = response.choices[0].message.content.strip()
+            logger.info(f"📥 ОТВЕТ ОТ МОДЕЛИ ОЦЕНКИ:")
+            logger.info(f"Сырой ответ: '{score_text}'")
             
             # Извлекаем числовую оценку
             try:
                 score = int(score_text)
                 if 1 <= score <= 10:
+                    logger.info(f"✅ Итоговая оценка качества: {score}/10")
                     return score
                 else:
                     logger.warning(f"Оценка вне диапазона 1-10: {score}")
+                    logger.info(f"⚠️  Используем оценку по умолчанию: 5/10")
                     return 5  # Средняя оценка по умолчанию
             except ValueError:
                 logger.warning(f"Не удалось извлечь числовую оценку: {score_text}")
+                logger.info(f"⚠️  Используем оценку по умолчанию: 5/10")
                 return 5  # Средняя оценка по умолчанию
                 
         except Exception as e:

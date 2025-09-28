@@ -62,6 +62,9 @@ Thumbs.db
 # Project specific
 server.log
 *.csv
-test_*.py
-demo_*.ipynb
 models_results_table.csv
+
+# Temporary files
+temp_*.py
+*_temp.py
+*_backup.py
