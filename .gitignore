@@ -48,6 +48,7 @@ venv.bak/
 # Logs
 *.log
 logs/
+test_logs/
 
 # Test results
 test_results/

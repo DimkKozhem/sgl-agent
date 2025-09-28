@@ -16,8 +16,15 @@ from .models import (
 )
 from .task_manager import SimpleTaskManager
 
-# Настройка логирования
-logging.basicConfig(level=logging.INFO)
+# Настройка логирования с ротацией
+try:
+    from .log_rotator import setup_logging
+    log_rotator = setup_logging()
+except ImportError:
+    # Fallback если ротатор недоступен
+    import logging
+    logging.basicConfig(level=logging.INFO)
+
 logger = logging.getLogger(__name__)
 
 # Создание FastAPI приложения
@@ -107,6 +114,15 @@ async def get_stats():
         })
     
     stats["llm_info"] = llm_info
+    
+    # Добавляем информацию о логах
+    try:
+        from sql_agent.log_rotator import get_log_rotator
+        log_rotator = get_log_rotator()
+        stats["log_info"] = log_rotator.get_log_info()
+    except Exception as e:
+        stats["log_info"] = {"error": f"Не удалось получить информацию о логах: {e}"}
+    
     return stats
 
 
