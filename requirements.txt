@@ -1,0 +1,15 @@
+# Основные зависимости для SQL-agent
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.0
+
+# Для работы с LLM через OpenRouter
+openai>=1.0.0
+httpx>=0.25.0
+python-dotenv>=1.0.0
+
+# Для работы с базами данных
+trino>=0.325.0
+
+# Утилиты
+tqdm>=4.66.0

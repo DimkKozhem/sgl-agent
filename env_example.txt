@@ -1,0 +1,10 @@
+# Пример файла конфигурации для SQL-agent
+# Скопируйте этот файл в .env и заполните ваши API ключи
+
+# API ключ для OpenRouter (обязательно для работы с LLM)
+OPEN_ROUTER=your_openrouter_api_key_here
+
+# Альтернативные настройки (опционально)
+# OPENAI_API_KEY=your_openai_api_key_here
+# HTTP_PROXY=socks5://localhost:1080
+# HTTPS_PROXY=socks5://localhost:1080
