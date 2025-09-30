@@ -1,0 +1,46 @@
+{
+  "url": "jdbc:trino://localhost:8080?catalog=star",
+  "ddl": [
+    {
+      "statement": "CREATE TABLE star.public.dim_date (date_key INTEGER, full_date DATE, year INTEGER, quarter INTEGER, month INTEGER, day_of_month INTEGER, day_of_week INTEGER, is_weekend BOOLEAN, fiscal_year INTEGER, fiscal_quarter INTEGER)"
+    },
+    {
+      "statement": "CREATE TABLE star.public.dim_customer (customer_key INTEGER, customer_id VARCHAR(50), customer_name VARCHAR(255), customer_type VARCHAR(50), region VARCHAR(100), country VARCHAR(100), city VARCHAR(100), industry VARCHAR(100), company_size VARCHAR(50), created_date DATE)"
+    },
+    {
+      "statement": "CREATE TABLE star.public.dim_product (product_key INTEGER, product_id VARCHAR(50), product_name VARCHAR(255), category VARCHAR(100), subcategory VARCHAR(100), brand VARCHAR(100), unit_price DECIMAL(10,2), cost DECIMAL(10,2), weight_kg DECIMAL(8,3), dimensions VARCHAR(50), created_date DATE)"
+    },
+    {
+      "statement": "CREATE TABLE star.public.dim_salesperson (salesperson_key INTEGER, salesperson_id VARCHAR(50), salesperson_name VARCHAR(255), territory VARCHAR(100), manager_id VARCHAR(50), hire_date DATE, commission_rate DECIMAL(5,2), quota DECIMAL(12,2))"
+    },
+    {
+      "statement": "CREATE TABLE star.public.fact_sales (sales_key BIGINT, date_key INTEGER, customer_key INTEGER, product_key INTEGER, salesperson_key INTEGER, order_id VARCHAR(50), quantity INTEGER, unit_price DECIMAL(10,2), total_amount DECIMAL(12,2), discount_amount DECIMAL(10,2), tax_amount DECIMAL(10,2), net_amount DECIMAL(12,2), order_date TIMESTAMP, ship_date TIMESTAMP)"
+    }
+  ],
+  "queries": [
+    {
+      "queryid": "star-sales-performance",
+      "query": "SELECT dd.year, dd.quarter, dc.region, dc.country, SUM(fs.net_amount) as total_sales, COUNT(DISTINCT fs.order_id) as total_orders, AVG(fs.net_amount) as avg_order_value, SUM(fs.quantity) as total_quantity FROM star.public.fact_sales fs JOIN star.public.dim_date dd ON fs.date_key = dd.date_key JOIN star.public.dim_customer dc ON fs.customer_key = dc.customer_key WHERE dd.year >= 2022 GROUP BY dd.year, dd.quarter, dc.region, dc.country ORDER BY total_sales DESC LIMIT 20",
+      "runquantity": 150,
+      "executiontime": 25
+    },
+    {
+      "queryid": "star-product-analysis",
+      "query": "SELECT dp.category, dp.subcategory, dp.brand, COUNT(DISTINCT fs.order_id) as order_count, SUM(fs.quantity) as total_quantity, SUM(fs.net_amount) as total_revenue, AVG(fs.unit_price) as avg_price, (SUM(fs.net_amount) - SUM(fs.quantity * dp.cost)) as total_profit FROM star.public.fact_sales fs JOIN star.public.dim_product dp ON fs.product_key = dp.product_key JOIN star.public.dim_date dd ON fs.date_key = dd.date_key WHERE dd.year = 2023 GROUP BY dp.category, dp.subcategory, dp.brand HAVING COUNT(DISTINCT fs.order_id) > 50 ORDER BY total_profit DESC LIMIT 15",
+      "runquantity": 80,
+      "executiontime": 18
+    },
+    {
+      "queryid": "star-salesperson-ranking",
+      "query": "SELECT ds.salesperson_name, ds.territory, COUNT(DISTINCT fs.order_id) as total_orders, SUM(fs.net_amount) as total_sales, AVG(fs.net_amount) as avg_order_value, SUM(fs.net_amount * ds.commission_rate / 100) as total_commission, RANK() OVER (ORDER BY SUM(fs.net_amount) DESC) as sales_rank FROM star.public.fact_sales fs JOIN star.public.dim_salesperson ds ON fs.salesperson_key = ds.salesperson_key JOIN star.public.dim_date dd ON fs.date_key = dd.date_key WHERE dd.year = 2023 GROUP BY ds.salesperson_key, ds.salesperson_name, ds.territory, ds.commission_rate ORDER BY total_sales DESC LIMIT 10",
+      "runquantity": 60,
+      "executiontime": 15
+    },
+    {
+      "queryid": "star-time-series-analysis",
+      "query": "WITH monthly_sales AS (SELECT dd.year, dd.month, SUM(fs.net_amount) as monthly_sales, COUNT(DISTINCT fs.order_id) as monthly_orders FROM star.public.fact_sales fs JOIN star.public.dim_date dd ON fs.date_key = dd.date_key WHERE dd.year >= 2022 GROUP BY dd.year, dd.month), sales_growth AS (SELECT year, month, monthly_sales, monthly_orders, LAG(monthly_sales) OVER (ORDER BY year, month) as prev_month_sales, LAG(monthly_orders) OVER (ORDER BY year, month) as prev_month_orders FROM monthly_sales) SELECT year, month, monthly_sales, monthly_orders, CASE WHEN prev_month_sales IS NOT NULL THEN ROUND(((monthly_sales - prev_month_sales) / prev_month_sales * 100), 2) ELSE NULL END as sales_growth_percent, CASE WHEN prev_month_orders IS NOT NULL THEN ROUND(((monthly_orders - prev_month_orders) / prev_month_orders * 100), 2) ELSE NULL END as orders_growth_percent FROM sales_growth ORDER BY year, month",
+      "runquantity": 40,
+      "executiontime": 12
+    }
+  ]
+}

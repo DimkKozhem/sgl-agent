@@ -76,47 +76,26 @@ class SimpleTaskManager:
         }
     
     async def _process_task(self, task_id: str):
-        """Обработка задачи"""
+        """Обработка задачи с таймаутом"""
         task = self.tasks.get(task_id)
         if not task:
             return
         
         try:
             self._running_tasks += 1
-            logger.info(f"Начинаем обработку задачи {task_id}")
+            logger.info(f"Начинаем обработку задачи {task_id} с таймаутом {self.task_timeout_minutes} минут")
             
-            # Используем LLM анализатор если доступен
-            if self.use_llm and self.llm_analyzer:
-                logger.info(f"Используем LLM анализатор для задачи {task_id}")
-                
-                # Подготавливаем данные для LLM
-                request_data = {
-                    "url": task.request.url,
-                    "ddl": task.request.ddl,
-                    "queries": task.request.queries
-                }
-                
-                # Анализируем с помощью LLM
-                llm_result = self.llm_analyzer.analyze_database(request_data)
-                
-                # Создаем результат из ответа LLM
-                result = self._create_result_from_llm(llm_result, task.request)
-                
-                # Оцениваем качество ответа
-                task_input_str = str(request_data)
-                output_str = str(llm_result)
-                quality_score = self.llm_analyzer.evaluate_response(task_input_str, output_str)
-                
-                logger.info(f"Задача {task_id} выполнена с оценкой качества: {quality_score}/10")
-                
-            else:
-                logger.info(f"Используем простую логику для задачи {task_id}")
-                # Fallback к простой логике
-                await asyncio.sleep(2)  # Имитация обработки
-                result = self._create_simple_result(task.request)
+            # Оборачиваем выполнение задачи в таймаут
+            await asyncio.wait_for(
+                self._execute_task(task_id),
+                timeout=self.task_timeout_minutes * 60  # Конвертируем минуты в секунды
+            )
             
-            task.result = result
-            task.status = TaskStatus.DONE
+        except asyncio.TimeoutError:
+            error_msg = f"Задача {task_id} превысила лимит времени выполнения ({self.task_timeout_minutes} минут)"
+            logger.error(error_msg)
+            task.status = TaskStatus.FAILED
+            task.error = error_msg
             
         except Exception as e:
             error_msg = f"Ошибка при выполнении задачи {task_id}: {str(e)}"
@@ -126,6 +105,41 @@ class SimpleTaskManager:
             
         finally:
             self._running_tasks -= 1
+    
+    async def _execute_task(self, task_id: str):
+        """Выполнение задачи без таймаута"""
+        task = self.tasks.get(task_id)
+        if not task:
+            return
+        
+        # Используем LLM анализатор если доступен
+        if self.use_llm and self.llm_analyzer:
+            logger.info(f"Используем LLM анализатор для задачи {task_id}")
+            
+            # Подготавливаем данные для LLM
+            request_data = {
+                "url": task.request.url,
+                "ddl": task.request.ddl,
+                "queries": task.request.queries
+            }
+            
+            # Анализируем с помощью LLM
+            llm_result = self.llm_analyzer.analyze_database(request_data)
+            
+            # Создаем результат из ответа LLM
+            result = self._create_result_from_llm(llm_result, task.request)
+            
+            # Логируем успешное выполнение
+            logger.info(f"Задача {task_id} выполнена успешно с LLM анализом")
+            
+        else:
+            logger.info(f"Используем простую логику для задачи {task_id}")
+            # Fallback к простой логике
+            await asyncio.sleep(2)  # Имитация обработки
+            result = self._create_simple_result(task.request)
+        
+        task.result = result
+        task.status = TaskStatus.DONE
     
     def _create_result_from_llm(self, llm_result: dict, request: OptimizationRequest) -> OptimizationResult:
         """Создание результата из ответа LLM"""
@@ -152,10 +166,43 @@ class SimpleTaskManager:
                         "runquantity": query_data["runquantity"]
                     })
             
+            # Оцениваем качество результата
+            quality_score = None
+            if self.llm_analyzer:
+                try:
+                    # Подготавливаем данные для оценки
+                    task_input_str = f"URL: {request.url}, DDL: {len(ddl)} statements, Queries: {len(request.queries)}"
+                    
+                    # Формируем детальный output с конкретными SQL-запросами
+                    output_parts = []
+                    if ddl:
+                        output_parts.append("DDL STATEMENTS:")
+                        for i, ddl_stmt in enumerate(ddl, 1):
+                            output_parts.append(f"{i}. {ddl_stmt['statement']}")
+                    
+                    if migrations:
+                        output_parts.append("\nMIGRATION STATEMENTS:")
+                        for i, mig_stmt in enumerate(migrations, 1):
+                            output_parts.append(f"{i}. {mig_stmt['statement']}")
+                    
+                    if queries:
+                        output_parts.append("\nOPTIMIZED QUERIES:")
+                        for i, query in enumerate(queries, 1):
+                            output_parts.append(f"{i}. ID: {query['queryid']}")
+                            output_parts.append(f"   Query: {query['query']}")
+                    
+                    output_str = "\n".join(output_parts)
+                    
+                    quality_score = self.llm_analyzer.evaluate_response(task_input_str, output_str)
+                    logger.info(f"📊 Оценка качества результата: {quality_score}/100")
+                except Exception as e:
+                    logger.warning(f"Ошибка при оценке качества: {e}")
+            
             return OptimizationResult(
                 ddl=ddl,
                 migrations=migrations,
-                queries=queries
+                queries=queries,
+                quality_score=quality_score
             )
             
         except Exception as e:
@@ -191,7 +238,8 @@ class SimpleTaskManager:
         return OptimizationResult(
             ddl=ddl,
             migrations=migrations,
-            queries=queries
+            queries=queries,
+            quality_score=30  # Низкая оценка для простого результата
         )
     
     def _extract_catalog_from_url(self, url: str) -> str:

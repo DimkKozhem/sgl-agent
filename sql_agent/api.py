@@ -33,7 +33,7 @@ app = FastAPI(
 )
 
 # Создание менеджера задач с поддержкой LLM
-task_manager = SimpleTaskManager(max_workers=4, task_timeout_minutes=15, use_llm=True)
+task_manager = SimpleTaskManager(max_workers=4, task_timeout_minutes=20, use_llm=True)
 
 
 @app.get("/health")

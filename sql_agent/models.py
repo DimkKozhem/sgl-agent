@@ -53,6 +53,7 @@ class OptimizationResult(BaseModel):
     ddl: List[Dict[str, str]] = Field(..., description="Новые DDL команды")
     migrations: List[Dict[str, str]] = Field(..., description="Команды миграции данных")
     queries: List[Dict[str, Any]] = Field(..., description="Оптимизированные запросы")
+    quality_score: Optional[int] = Field(None, description="Оценка качества оптимизации (1-100)")
 
 
 class Task(BaseModel):
@@ -79,13 +80,15 @@ class TaskResultResponse(BaseModel):
     ddl: List[Dict[str, str]]
     migrations: List[Dict[str, str]]
     queries: List[Dict[str, Any]]
+    quality_score: Optional[int] = None
 
     @classmethod
     def from_optimization_result(cls, result: OptimizationResult):
         return cls(
             ddl=result.ddl,
             migrations=result.migrations,
-            queries=result.queries
+            queries=result.queries,
+            quality_score=result.quality_score
         )
 
 

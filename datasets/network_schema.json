@@ -1,0 +1,52 @@
+{
+  "url": "jdbc:trino://localhost:8080?catalog=network",
+  "ddl": [
+    {
+      "statement": "CREATE TABLE network.public.nodes (node_id VARCHAR(50), node_type VARCHAR(50), node_name VARCHAR(255), properties JSON, created_at TIMESTAMP, updated_at TIMESTAMP, status VARCHAR(20))"
+    },
+    {
+      "statement": "CREATE TABLE network.public.edges (edge_id VARCHAR(50), source_node_id VARCHAR(50), target_node_id VARCHAR(50), edge_type VARCHAR(50), weight DECIMAL(10,4), properties JSON, created_at TIMESTAMP, updated_at TIMESTAMP, status VARCHAR(20))"
+    },
+    {
+      "statement": "CREATE TABLE network.public.node_attributes (attribute_id VARCHAR(50), node_id VARCHAR(50), attribute_name VARCHAR(100), attribute_value VARCHAR(500), data_type VARCHAR(50), created_at TIMESTAMP, updated_at TIMESTAMP)"
+    },
+    {
+      "statement": "CREATE TABLE network.public.edge_metrics (metric_id VARCHAR(50), edge_id VARCHAR(50), metric_name VARCHAR(100), metric_value DECIMAL(15,6), metric_timestamp TIMESTAMP, metadata JSON)"
+    },
+    {
+      "statement": "CREATE TABLE network.public.network_snapshots (snapshot_id VARCHAR(50), snapshot_name VARCHAR(255), snapshot_timestamp TIMESTAMP, total_nodes INTEGER, total_edges INTEGER, network_density DECIMAL(8,6), average_clustering DECIMAL(8,6), metadata JSON)"
+    }
+  ],
+  "queries": [
+    {
+      "queryid": "network-centrality-analysis",
+      "query": "SELECT n.node_id, n.node_name, n.node_type, COUNT(e1.edge_id) as out_degree, COUNT(e2.edge_id) as in_degree, (COUNT(e1.edge_id) + COUNT(e2.edge_id)) as total_degree, AVG(COALESCE(e1.weight, 0)) as avg_out_weight, AVG(COALESCE(e2.weight, 0)) as avg_in_weight FROM network.public.nodes n LEFT JOIN network.public.edges e1 ON n.node_id = e1.source_node_id AND e1.status = 'active' LEFT JOIN network.public.edges e2 ON n.node_id = e2.target_node_id AND e2.status = 'active' WHERE n.status = 'active' GROUP BY n.node_id, n.node_name, n.node_type ORDER BY total_degree DESC LIMIT 20",
+      "runquantity": 120,
+      "executiontime": 22
+    },
+    {
+      "queryid": "network-path-analysis",
+      "query": "WITH RECURSIVE path_search AS (SELECT source_node_id as start_node, target_node_id as end_node, edge_id, 1 as path_length, ARRAY[source_node_id, target_node_id] as path_nodes FROM network.public.edges WHERE status = 'active' AND edge_type = 'connection' UNION ALL SELECT ps.start_node, e.target_node_id, e.edge_id, ps.path_length + 1, ps.path_nodes || e.target_node_id FROM path_search ps JOIN network.public.edges e ON ps.end_node = e.source_node_id WHERE e.status = 'active' AND e.edge_type = 'connection' AND ps.path_length < 3 AND NOT e.target_node_id = ANY(ps.path_nodes)) SELECT start_node, end_node, MIN(path_length) as shortest_path_length, COUNT(*) as path_count FROM path_search GROUP BY start_node, end_node HAVING COUNT(*) > 1 ORDER BY path_count DESC, shortest_path_length ASC LIMIT 15",
+      "runquantity": 45,
+      "executiontime": 35
+    },
+    {
+      "queryid": "network-community-detection",
+      "query": "SELECT n.node_type, COUNT(DISTINCT n.node_id) as node_count, COUNT(DISTINCT e.edge_id) as edge_count, AVG(em.metric_value) as avg_metric_value, STDDEV(em.metric_value) as metric_stddev FROM network.public.nodes n LEFT JOIN network.public.edges e ON (n.node_id = e.source_node_id OR n.node_id = e.target_node_id) AND e.status = 'active' LEFT JOIN network.public.edge_metrics em ON e.edge_id = em.edge_id WHERE n.status = 'active' GROUP BY n.node_type ORDER BY node_count DESC",
+      "runquantity": 35,
+      "executiontime": 18
+    },
+    {
+      "queryid": "network-temporal-analysis",
+      "query": "SELECT DATE_TRUNC('month', ns.snapshot_timestamp) as month, AVG(ns.total_nodes) as avg_nodes, AVG(ns.total_edges) as avg_edges, AVG(ns.network_density) as avg_density, AVG(ns.average_clustering) as avg_clustering, COUNT(*) as snapshot_count FROM network.public.network_snapshots ns WHERE ns.snapshot_timestamp >= '2023-01-01' GROUP BY DATE_TRUNC('month', ns.snapshot_timestamp) ORDER BY month",
+      "runquantity": 25,
+      "executiontime": 8
+    },
+    {
+      "queryid": "network-attribute-analysis",
+      "query": "SELECT na.attribute_name, na.data_type, COUNT(DISTINCT na.node_id) as nodes_with_attribute, COUNT(*) as total_attributes, AVG(CASE WHEN na.data_type = 'numeric' THEN CAST(na.attribute_value AS DECIMAL) ELSE NULL END) as avg_numeric_value, COUNT(DISTINCT na.attribute_value) as unique_values FROM network.public.node_attributes na JOIN network.public.nodes n ON na.node_id = n.node_id WHERE n.status = 'active' GROUP BY na.attribute_name, na.data_type ORDER BY nodes_with_attribute DESC LIMIT 10",
+      "runquantity": 30,
+      "executiontime": 12
+    }
+  ]
+}

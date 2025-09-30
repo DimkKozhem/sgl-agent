@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Тест SQL-agent с использованием JSON файлов из datasets
+Включает все схемы данных: flights, questsH, linear_schema, star_schema, network_schema
 """
 
 import asyncio
@@ -23,12 +24,14 @@ from sql_agent.models import OptimizationRequest
 class TestResult:
     """Результат тестирования одной задачи"""
     def __init__(self, task_id: str, dataset_name: str, success: bool, 
-                 execution_time: float, error: str = None):
+                 execution_time: float, error: str = None, result_data: Dict = None):
         self.task_id = task_id
         self.dataset_name = dataset_name
         self.success = success
         self.execution_time = execution_time
         self.error = error
+        self.result_data = result_data or {}
+        self.quality_score = None
 
 
 class TestRunner:
@@ -51,20 +54,49 @@ class TestRunner:
             print(f"❌ Директория {datasets_dir} не найдена")
             return datasets
         
-        json_files = glob.glob(os.path.join(datasets_dir, "*.json"))
+        # Определяем приоритет загрузки датасетов
+        priority_files = [
+            "flights.json",
+            "questsH.json", 
+            "linear_schema.json",
+            "star_schema.json",
+            "network_schema.json"
+        ]
         
+        # Сначала загружаем приоритетные файлы
+        for filename in priority_files:
+            json_file = os.path.join(datasets_dir, filename)
+            if os.path.exists(json_file):
+                try:
+                    with open(json_file, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        dataset_name = filename.replace('.json', '')
+                        datasets.append({
+                            'name': dataset_name,
+                            'data': data,
+                            'priority': True
+                        })
+                        print(f"✅ Загружен приоритетный датасет: {dataset_name}")
+                except Exception as e:
+                    print(f"❌ Ошибка загрузки {filename}: {e}")
+        
+        # Затем загружаем остальные файлы
+        json_files = glob.glob(os.path.join(datasets_dir, "*.json"))
         for json_file in json_files:
-            try:
-                with open(json_file, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    dataset_name = os.path.basename(json_file).replace('.json', '')
-                    datasets.append({
-                        'name': dataset_name,
-                        'data': data
-                    })
-                    print(f"✅ Загружен датасет: {dataset_name}")
-            except Exception as e:
-                print(f"❌ Ошибка загрузки {json_file}: {e}")
+            filename = os.path.basename(json_file)
+            if filename not in priority_files:
+                try:
+                    with open(json_file, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        dataset_name = filename.replace('.json', '')
+                        datasets.append({
+                            'name': dataset_name,
+                            'data': data,
+                            'priority': False
+                        })
+                        print(f"✅ Загружен дополнительный датасет: {dataset_name}")
+                except Exception as e:
+                    print(f"❌ Ошибка загрузки {filename}: {e}")
         
         return datasets
     
@@ -74,6 +106,8 @@ class TestRunner:
         data = dataset['data']
         
         print(f"🚀 Запуск теста для датасета: {dataset_name}")
+        print(f"   - DDL команд: {len(data.get('ddl', []))}")
+        print(f"   - Запросов: {len(data.get('queries', []))}")
         
         try:
             # Создаем запрос из данных JSON
@@ -88,20 +122,31 @@ class TestRunner:
             # Создаем задачу
             task_id = self.task_manager.create_task(request)
             
-            # Ждем завершения
+            # Ждем завершения с периодическими обновлениями
+            step = 0
             while self.task_manager.get_task_status(task_id) == "RUNNING":
-                await asyncio.sleep(0.1)
+                await asyncio.sleep(2)
+                step += 2
+                if step % 30 == 0:  # Каждые 30 секунд
+                    print(f"   ⏳ {dataset_name} выполняется уже {step} секунд...")
             
             execution_time = time.time() - start_time
             status = self.task_manager.get_task_status(task_id)
             
             if status == "DONE":
                 result = self.task_manager.get_task_result(task_id)
+                result_data = {
+                    "ddl_count": len(result.ddl),
+                    "migrations_count": len(result.migrations),
+                    "queries_count": len(result.queries),
+                    "quality_score": result.quality_score
+                }
                 print(f"✅ Тест {dataset_name} завершен успешно за {execution_time:.2f}s")
                 print(f"   - DDL команд: {len(result.ddl)}")
                 print(f"   - Миграций: {len(result.migrations)}")
                 print(f"   - Запросов: {len(result.queries)}")
-                return TestResult(task_id, dataset_name, True, execution_time)
+                print(f"   - Оценка качества: {result.quality_score}")
+                return TestResult(task_id, dataset_name, True, execution_time, None, result_data)
             else:
                 error = self.task_manager.get_task_error(task_id)
                 print(f"❌ Тест {dataset_name} завершился с ошибкой: {error}")
@@ -167,6 +212,32 @@ class TestRunner:
             print(f"   Минимум: {min(execution_times):.2f}s")
             print(f"   Максимум: {max(execution_times):.2f}s")
         
+        # Анализ по типам схем
+        print(f"\n🏗️  АНАЛИЗ ПО ТИПАМ СХЕМ:")
+        schema_types = {
+            "flights": "Авиаперелеты (1 таблица, 20 запросов)",
+            "questsH": "Квест-платформа (37 таблиц, 10 запросов)",
+            "linear_schema": "Линейная схема (4 таблицы, 3 запроса)",
+            "star_schema": "Звездообразная схема (5 таблиц, 4 запроса)",
+            "network_schema": "Сетевая схема (5 таблиц, 5 запросов)"
+        }
+        
+        for result in results:
+            schema_type = result.dataset_name
+            type_description = schema_types.get(schema_type, "Неизвестный тип")
+            status = "✅ Успех" if result.success else "❌ Ошибка"
+            quality_info = f" (оценка: {result.result_data.get('quality_score', 'N/A')})" if result.success else ""
+            print(f"   {schema_type.upper()}: {status}{quality_info} - {type_description}")
+        
+        # Статистика качества
+        quality_scores = [r.result_data.get('quality_score') for r in results if r.success and r.result_data.get('quality_score')]
+        if quality_scores:
+            print(f"\n🎯 СТАТИСТИКА КАЧЕСТВА:")
+            print(f"   Средняя оценка: {statistics.mean(quality_scores):.1f}/100")
+            print(f"   Медианная оценка: {statistics.median(quality_scores):.1f}/100")
+            print(f"   Минимальная оценка: {min(quality_scores):.1f}/100")
+            print(f"   Максимальная оценка: {max(quality_scores):.1f}/100")
+        
         print(f"\n📈 СТАТИСТИКА МЕНЕДЖЕРА ЗАДАЧ:")
         stats = self.task_manager.get_stats()
         for key, value in stats.items():
@@ -184,7 +255,8 @@ class TestRunner:
 async def main():
     """Основная функция тестирования"""
     print("🧪 Запуск тестирования SQL-agent с JSON датасетами")
-    print("="*60)
+    print("="*80)
+    print("Тестируем все схемы данных: flights, questsH, linear, star, network")
     
     # Создаем тестовый раннер
     test_runner = TestRunner(max_concurrent_tasks=5)
@@ -208,6 +280,22 @@ async def main():
     test_runner.print_statistics(results)
     
     print(f"\n🎉 Тестирование завершено за {total_time:.2f}s")
+    
+    # Сохраняем результаты
+    results_data = []
+    for result in results:
+        results_data.append({
+            "dataset_name": result.dataset_name,
+            "success": result.success,
+            "execution_time": result.execution_time,
+            "error": result.error,
+            "result_data": result.result_data
+        })
+    
+    with open("test_results.json", "w", encoding="utf-8") as f:
+        json.dump(results_data, f, indent=2, ensure_ascii=False)
+    
+    print(f"💾 Результаты сохранены в test_results.json")
 
 
 if __name__ == "__main__":
