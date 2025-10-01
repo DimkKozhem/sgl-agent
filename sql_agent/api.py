@@ -1,5 +1,8 @@
 """
-REST API для SQL-agent
+REST API для SQL-agent.
+
+Предоставляет HTTP endpoints для создания задач оптимизации базы данных,
+получения статуса выполнения и результатов анализа.
 """
 
 from fastapi import FastAPI, HTTPException, Query
@@ -38,7 +41,12 @@ task_manager = SimpleTaskManager(max_workers=4, task_timeout_minutes=20, use_llm
 
 @app.get("/health")
 async def health_check():
-    """Проверка состояния сервиса"""
+    """
+    Проверка состояния сервиса.
+
+    Returns:
+        dict: Статус сервиса, версия и статистика задач
+    """
     stats = task_manager.get_stats()
     return {
         "status": "healthy",
@@ -49,7 +57,18 @@ async def health_check():
 
 @app.post("/new", response_model=TaskCreateResponse)
 async def create_optimization_task(request: OptimizationRequest):
-    """Создание новой задачи оптимизации"""
+    """
+    Создание новой задачи оптимизации базы данных.
+
+    Args:
+        request: Запрос с DDL, SQL запросами и JDBC URL
+
+    Returns:
+        TaskCreateResponse: ID созданной задачи
+
+    Raises:
+        HTTPException: При ошибке создания задачи
+    """
     try:
         task_id = task_manager.create_task(request)
         logger.info(f"Создана новая задача: {task_id}")
@@ -65,7 +84,7 @@ async def get_task_status(task_id: str = Query(..., description="ID задачи
     status = task_manager.get_task_status(task_id)
     if status is None:
         raise HTTPException(status_code=404, detail="Задача не найдена")
-    
+
     return TaskStatusResponse(status=status)
 
 
@@ -75,17 +94,17 @@ async def get_task_result(task_id: str = Query(..., description="ID задачи
     status = task_manager.get_task_status(task_id)
     if status is None:
         raise HTTPException(status_code=404, detail="Задача не найдена")
-    
+
     if status == TaskStatus.RUNNING:
         return JSONResponse(
             status_code=202,
             content={"error": "Задача еще выполняется"}
         )
-    
+
     if status == TaskStatus.FAILED:
         error = task_manager.get_task_error(task_id)
         raise HTTPException(status_code=500, detail=f"Задача завершилась с ошибкой: {error}")
-    
+
     if status == TaskStatus.DONE:
         result = task_manager.get_task_result(task_id)
         if result:
@@ -98,21 +117,21 @@ async def get_task_result(task_id: str = Query(..., description="ID задачи
 async def get_stats():
     """Получение статистики сервиса"""
     stats = task_manager.get_stats()
-    
+
     # Добавляем информацию о LLM
     llm_info = {
         "llm_enabled": task_manager.use_llm,
         "llm_analyzer_available": task_manager.llm_analyzer is not None
     }
-    
+
     if task_manager.llm_analyzer:
         llm_info.update({
             "analysis_model": task_manager.llm_analyzer.analysis_model,
             "evaluation_model": task_manager.llm_analyzer.evaluation_model
         })
-    
+
     stats["llm_info"] = llm_info
-    
+
     # Добавляем информацию о логах
     try:
         from sql_agent.log_rotator import get_log_rotator
@@ -120,7 +139,7 @@ async def get_stats():
         stats["log_info"] = log_rotator.get_log_info()
     except Exception as e:
         stats["log_info"] = {"error": f"Не удалось получить информацию о логах: {e}"}
-    
+
     return stats
 
 

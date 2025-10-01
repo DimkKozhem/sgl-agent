@@ -1,0 +1,52 @@
+[
+  {
+    "dataset_name": "flights",
+    "success": false,
+    "execution_time": 761.3173809051514,
+    "error": "Ошибка при выполнении задачи da7c39ef-4d95-4bd8-a41d-4dea96a80b21: Валидация полных путей не пройдена: 25 ошибок",
+    "result_data": {}
+  },
+  {
+    "dataset_name": "questsH",
+    "success": false,
+    "execution_time": 761.3173477649689,
+    "error": "Ошибка при выполнении задачи fda0783a-dbf4-47f5-97a2-610e7d77fd5b: Валидация полных путей не пройдена: 143 ошибок",
+    "result_data": {}
+  },
+  {
+    "dataset_name": "linear_schema",
+    "success": true,
+    "execution_time": 761.3173317909241,
+    "error": null,
+    "result_data": {
+      "ddl_count": 5,
+      "migrations_count": 8,
+      "queries_count": 3,
+      "quality_score": 92
+    }
+  },
+  {
+    "dataset_name": "star_schema",
+    "success": true,
+    "execution_time": 761.3173429965973,
+    "error": null,
+    "result_data": {
+      "ddl_count": 6,
+      "migrations_count": 10,
+      "queries_count": 4,
+      "quality_score": 93
+    }
+  },
+  {
+    "dataset_name": "network_schema",
+    "success": true,
+    "execution_time": 761.3172860145569,
+    "error": null,
+    "result_data": {
+      "ddl_count": 6,
+      "migrations_count": 10,
+      "queries_count": 5,
+      "quality_score": 94
+    }
+  }
+]

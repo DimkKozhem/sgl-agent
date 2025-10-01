@@ -1,5 +1,8 @@
 """
-Модели данных для SQL-agent
+Модели данных для SQL-agent.
+
+Определяет структуры данных для запросов, ответов и задач
+оптимизации базы данных с валидацией через Pydantic.
 """
 
 from pydantic import BaseModel, Field, validator
@@ -9,14 +12,27 @@ import uuid
 
 
 class TaskStatus(str, Enum):
-    """Статусы задач"""
+    """
+    Статусы выполнения задач оптимизации.
+
+    RUNNING: Задача выполняется
+    DONE: Задача успешно завершена
+    FAILED: Задача завершилась с ошибкой
+    """
     RUNNING = "RUNNING"
     DONE = "DONE"
     FAILED = "FAILED"
 
 
 class OptimizationRequest(BaseModel):
-    """Запрос на оптимизацию структуры БД"""
+    """
+    Запрос на оптимизацию структуры базы данных.
+
+    Содержит все необходимые данные для анализа и оптимизации:
+    - JDBC URL для подключения к БД
+    - DDL команды для создания таблиц
+    - SQL запросы с метриками выполнения
+    """
     url: str = Field(..., description="JDBC URL для подключения к БД")
     ddl: List[Dict[str, str]] = Field(..., description="DDL команды создания таблиц")
     queries: List[Dict[str, Any]] = Field(..., description="SQL запросы с метриками")
@@ -96,4 +112,3 @@ class StatsResponse(BaseModel):
     """Статистика сервиса"""
     task_statistics: Dict[str, int]
     system_info: Dict[str, Any]
-
