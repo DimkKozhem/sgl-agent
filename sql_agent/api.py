@@ -7,6 +7,10 @@ REST API для SQL-agent.
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import JSONResponse
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
 import logging
 
 from .models import (
@@ -34,6 +38,22 @@ app = FastAPI(
     description="REST API для анализа и оптимизации структуры базы данных",
     version="1.0.0"
 )
+
+# Монтируем статическую директорию
+static_dir = os.path.join(os.path.dirname(__file__), "..", "static")
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+# Добавляем эндпоинты для презентаций
+@app.get("/presentation")
+async def get_presentation():
+    """Детальная презентация архитектуры (прокручиваемая)"""
+    static_path = os.path.join(os.path.dirname(__file__), "..", "static", "pipeline.html")
+    if os.path.exists(static_path):
+        return FileResponse(static_path)
+    return {"error": "pipeline not found"}
+
+
 
 # Создание менеджера задач с поддержкой LLM
 task_manager = SimpleTaskManager(max_workers=4, task_timeout_minutes=20, use_llm=True)

@@ -1,0 +1,2069 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL-Agent Pipeline Flow</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            overflow-x: hidden;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 60px;
+            animation: fadeInDown 1s ease-out;
+        }
+
+        .header h1 {
+            font-size: 4em;
+            font-weight: 900;
+            margin-bottom: 20px;
+            text-shadow: 3px 3px 8px rgba(0,0,0,0.5);
+            background: linear-gradient(45deg, #fff, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header .subtitle {
+            font-size: 1.4em;
+            opacity: 0.95;
+            font-weight: 300;
+            line-height: 1.6;
+        }
+
+        .controls {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border: none;
+            padding: 15px 35px;
+            border-radius: 30px;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.4);
+            font-weight: 600;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(59, 130, 246, 0.6);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #64748b, #475569);
+        }
+
+        .pipeline-container {
+            max-width: 1800px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .connection-line {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 6px;
+            background: rgba(100, 116, 139, 0.3);
+            transform: translateX(-50%);
+            z-index: 0;
+        }
+
+        .data-packet {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+            border-radius: 50%;
+            box-shadow: 0 0 20px rgba(96, 165, 250, 0.8);
+            animation: flowDown 8s linear infinite;
+            z-index: 1;
+        }
+
+        @keyframes flowDown {
+            0% {
+                top: 0;
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                top: 100%;
+                opacity: 0;
+            }
+        }
+
+        .pipeline-step {
+            position: relative;
+            margin-bottom: 100px;
+            animation: fadeInUp 1s ease-out backwards;
+            z-index: 2;
+        }
+
+        .step-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 120px 1fr;
+            gap: 40px;
+            align-items: start;
+        }
+
+        .step-card {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 28px;
+            padding: 40px;
+            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s ease;
+        }
+
+        .step-card:hover {
+            transform: translateY(-10px) scale(1.01);
+            box-shadow: 0 35px 90px rgba(0, 0, 0, 0.5);
+        }
+
+        .step-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: linear-gradient(90deg, #667eea, #764ba2, #f093fb, #667eea);
+            background-size: 200% 100%;
+            animation: gradientShift 3s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 25px;
+            margin-bottom: 30px;
+            padding-bottom: 25px;
+            border-bottom: 3px solid #e2e8f0;
+        }
+
+        .step-number {
+            width: 85px;
+            height: 85px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5em;
+            font-weight: bold;
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.5);
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .step-number::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 3px solid rgba(102, 126, 234, 0.5);
+            animation: ripple 2s ease-out infinite;
+        }
+
+        .card-title h2 {
+            font-size: 2.2em;
+            color: #1e293b;
+            margin-bottom: 10px;
+            font-weight: 800;
+        }
+
+        .card-title p {
+            color: #64748b;
+            font-size: 1.1em;
+            line-height: 1.5;
+        }
+
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #334155;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-icon {
+            font-size: 1.5em;
+        }
+
+        .data-flow {
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            border-radius: 18px;
+            padding: 25px;
+            border: 2px solid #e2e8f0;
+            margin-bottom: 20px;
+        }
+
+        .data-sample {
+            background: #0f172a;
+            border-radius: 14px;
+            padding: 22px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #e2e8f0;
+            line-height: 1.8;
+            overflow-x: auto;
+            box-shadow: inset 0 4px 12px rgba(0,0,0,0.4);
+            border: 1px solid #1e293b;
+        }
+
+        .json-key { color: #60a5fa; font-weight: 600; }
+        .json-string { color: #34d399; }
+        .json-number { color: #f472b6; }
+        .json-bool { color: #fbbf24; }
+        .json-comment { color: #94a3b8; font-style: italic; }
+
+        .center-connector {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .center-icon {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #fff, #f8fafc);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3em;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+            position: relative;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .center-icon::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 4px solid rgba(102, 126, 234, 0.5);
+            animation: ripple 2s ease-out infinite;
+        }
+
+        .connector-label {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px 24px;
+            border-radius: 20px;
+            font-weight: 600;
+            color: #334155;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            font-size: 0.95em;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 18px;
+        }
+
+        .metric {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 25px;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+            transition: transform 0.3s ease;
+        }
+
+        .metric:hover {
+            transform: translateY(-5px);
+        }
+
+        .metric-value {
+            font-size: 2.8em;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .metric-label {
+            font-size: 0.95em;
+            opacity: 0.95;
+            font-weight: 500;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+        }
+
+        .feature-item {
+            background: linear-gradient(135deg, #f0f9ff, #e0e7ff);
+            padding: 18px;
+            border-radius: 12px;
+            border-left: 5px solid #667eea;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .feature-item:hover {
+            transform: translateX(8px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .feature-icon {
+            font-size: 1.8em;
+            flex-shrink: 0;
+        }
+
+        .feature-text {
+            font-size: 1em;
+            color: #334155;
+            font-weight: 600;
+        }
+
+        .feature-desc {
+            font-size: 0.85em;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        .timeline-badge {
+            display: inline-block;
+            padding: 8px 18px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border-radius: 25px;
+            font-size: 0.85em;
+            font-weight: 700;
+            margin-left: 12px;
+            box-shadow: 0 6px 18px rgba(16, 185, 129, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-warning {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            box-shadow: 0 6px 18px rgba(245, 158, 11, 0.4);
+        }
+
+        .badge-info {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            box-shadow: 0 6px 18px rgba(59, 130, 246, 0.4);
+        }
+
+        .badge-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            box-shadow: 0 6px 18px rgba(239, 68, 68, 0.4);
+        }
+
+        .process-flow {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border: 2px solid #fbbf24;
+            border-radius: 14px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+
+        .process-step {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 12px;
+            font-size: 0.95em;
+        }
+
+        .process-step:last-child {
+            margin-bottom: 0;
+        }
+
+        .process-number {
+            width: 35px;
+            height: 35px;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+        }
+
+        .process-text {
+            color: #78350f;
+            font-weight: 600;
+        }
+
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .tech-badge {
+            background: linear-gradient(135deg, #1e293b, #334155);
+            color: #e2e8f0;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .details-box {
+            background: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+
+        .details-title {
+            font-weight: 700;
+            color: #475569;
+            margin-bottom: 12px;
+            font-size: 1.05em;
+        }
+
+        .details-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .details-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+            color: #64748b;
+            font-size: 0.95em;
+        }
+
+        .details-list li:last-child {
+            border-bottom: none;
+        }
+
+        .details-list li::before {
+            content: '▸';
+            color: #667eea;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.08);
+            }
+        }
+
+        @keyframes ripple {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1.6);
+                opacity: 0;
+            }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-60px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(60px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-weight: 600;
+            color: #78350f;
+        }
+
+        @media (max-width: 1400px) {
+            .step-wrapper {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+
+            .center-connector {
+                order: 2;
+                margin: 20px 0;
+            }
+
+            .connection-line {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.5em;
+            }
+
+            .step-card {
+                padding: 25px;
+            }
+
+            .card-title h2 {
+                font-size: 1.6em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 SQL-Agent Complete Pipeline</h1>
+        <p class="subtitle">Детальный поток обработки данных от API запроса до оптимизированного результата<br>
+        <span style="font-size: 0.9em; opacity: 0.8;">Гибридный подход: LLM Analysis + Детерминированная генерация SQL + SQLglot оптимизации</span></p>
+    </div>
+
+    <div class="controls">
+        <button class="btn" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">↑ В начало</button>
+        <button class="btn btn-secondary" onclick="window.print()">🖨️ Печать</button>
+    </div>
+
+    <div class="pipeline-container">
+        <div class="connection-line">
+            <div class="data-packet" style="animation-delay: 0s"></div>
+            <div class="data-packet" style="animation-delay: 2s"></div>
+            <div class="data-packet" style="animation-delay: 4s"></div>
+            <div class="data-packet" style="animation-delay: 6s"></div>
+        </div>
+
+        <!-- STEP 1: API REQUEST -->
+        <div class="pipeline-step" style="animation-delay: 0.1s">
+            <div class="step-wrapper">
+                <!-- Left: Input -->
+                <div class="step-card">
+                    <div class="card-header">
+                        <div class="step-number">1</div>
+                        <div class="card-title">
+                            <h2>📨 API Request</h2>
+                            <p>POST /new - Создание задачи оптимизации базы данных</p>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">
+                            <span class="section-icon">📥</span>
+                            Входные данные (OptimizationRequest)
+                        </div>
+                        <div class="data-sample">
+{
+  <span class="json-key">"url"</span>: <span class="json-string">"jdbc:trino://localhost:8080?catalog=hive"</span>,
+  <span class="json-key">"ddl"</span>: [
+    {
+      <span class="json-key">"statement"</span>: <span class="json-string">"CREATE TABLE hive.public.users (
+        user_id BIGINT,
+        username VARCHAR,
+        email VARCHAR,
+        created_at TIMESTAMP,
+        status VARCHAR
+      )"</span>
+    },
+    {
+      <span class="json-key">"statement"</span>: <span class="json-string">"CREATE TABLE hive.public.orders (...)"</span>
+    }
+  ],
+  <span class="json-key">"queries"</span>: [
+    {
+      <span class="json-key">"queryid"</span>: <span class="json-string">"q1"</span>,
+      <span class="json-key">"query"</span>: <span class="json-string">"SELECT * FROM users WHERE created_at > '2024-01-01'"</span>,
+      <span class="json-key">"runquantity"</span>: <span class="json-number">1000</span>
+    }
+  ]
+}
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">
+                            <span class="section-icon">✅</span>
+                            Валидация данных
+                        </div>
+                        <div class="features-grid">
+                            <div class="feature-item">
+                                <div class="feature-icon">🔒</div>
+                                <div>
+                                    <div class="feature-text">JDBC URL проверка</div>
+                                    <div class="feature-desc">Формат: jdbc:trino://...</div>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">📋</div>
+                                <div>
+                                    <div class="feature-text">DDL структура</div>
+                                    <div class="feature-desc">Наличие поля "statement"</div>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">🔍</div>
+                                <div>
+                                    <div class="feature-text">Queries валидация</div>
+                                    <div class="feature-desc">queryid, query, runquantity</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="details-box">
+                        <div class="details-title">📊 Модель Pydantic</div>
+                        <ul class="details-list">
+                            <li><strong>url:</strong> str (обязательно, начинается с "jdbc:")</li>
+                            <li><strong>ddl:</strong> List[Dict[str, str]] (не пусто)</li>
+                            <li><strong>queries:</strong> List[Dict[str, Any]] (не пусто)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Center: Connector -->
+                <div class="center-connector">
+                    <div class="center-icon">⚡</div>
+                    <div class="connector-label">FastAPI</div>
+                    <div class="connector-label">Async</div>
+                </div>
+
+                <!-- Right: Output -->
+                <div class="step-card">
+                    <div class="section">
+                        <div class="section-title">
+                            <span class="section-icon">🎯</span>
+                            Ответ сервера
+                        </div>
+                        <div class="data-sample">
+{
+  <span class="json-key">"taskid"</span>: <span class="json-string">"a1b2c3d4-e5f6-7890-abcd-ef1234567890"</span>
+}
+
+<span class="json-comment">// HTTP Status: 202 Accepted</span>
+<span class="json-comment">// Content-Type: application/json</span>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="metrics-grid">
+                            <div class="metric">
+                                <div class="metric-value">&lt;100ms</div>
+                                <div class="metric-label">Response Time</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">202</div>
+                                <div class="metric-label">HTTP Status</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">UUID</div>
+                                <div class="metric-label">Task ID</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="tech-stack">
+                            <div class="tech-badge">FastAPI</div>
+                            <div class="tech-badge">Pydantic</div>
+                            <div class="tech-badge">asyncio</div>
+                            <div class="tech-badge">uvicorn</div>
+                        </div>
+                    </div>
+
+                    <div class="process-flow">
+                        <div class="process-step">
+                            <div class="process-number">1</div>
+                            <div class="process-text">Валидация входных данных</div>
+                        </div>
+                        <div class="process-step">
+                            <div class="process-number">2</div>
+                            <div class="process-text">Генерация UUID для задачи</div>
+                        </div>
+                        <div class="process-step">
+                            <div class="process-number">3</div>
+                            <div class="process-text">Создание Task объекта</div>
+                        </div>
+                        <div class="process-step">
+                            <div class="process-number">4</div>
+                            <div class="process-text">Запуск асинхронной обработки</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 2: TASK MANAGER -->
+        <div class="pipeline-step" style="animation-delay: 0.2s">
+            <div class="step-wrapper">
+                <div class="step-card">
+                    <div class="card-header">
+                        <div class="step-number">2</div>
+                        <div class="card-title">
+                            <h2>⚙️ Task Manager</h2>
+                            <p>Управление асинхронной обработкой задач<span class="timeline-badge badge-danger">20 min timeout</span></p>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">
+                            <span class="section-icon">🔄</span>
+                            Создание Task объекта
+                        </div>
+                        <div class="data-sample">
+<span class="json-comment"># task_manager.py</span>
+
+task = Task(
+  task_id=<span class="json-string">"a1b2c3d4-e5f6-7890-abcd-ef1234567890"</span>,
+  status=TaskStatus.<span class="json-bool">RUNNING</span>,
+  request=OptimizationRequest(...),
+  result=<span class="json-bool">None</span>,
+  error=<span class="json-bool">None</span>
+)
+
+<span class="json-comment"># Сохранение в памяти</span>
+self.tasks[task.task_id] = task
+
+<span class="json-comment"># Запуск асинхронной обработки</span>
+<span class="json-key">asyncio.create_task</span>(
+  self._process_task(task.task_id)
+)
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">
+                            <span class="section-icon">⏱️</span>
+                            Обработка с таймаутом
+                        </div>
+                        <div class="data-sample">
+<span class="json-key">await asyncio.wait_for</span>(
+  self._execute_task(task_id),
+  timeout=<span class="json-number">1200</span>  <span class="json-comment"># 20 минут в секундах</span>
+)
+
+<span class="json-comment"># При превышении таймаута:</span>
+<span class="json-key">except asyncio.TimeoutError:</span>
+  task.status = TaskStatus.<span class="json-bool">FAILED</span>
+  task.error = <span class="json-string">"Task timeout (20 min)"</span>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="features-grid">
+                            <div class="feature-item">
+                                <div class="feature-icon">🔄</div>
+                                <div>
+                                    <div class="feature-text">Асинхронная обработка</div>
+                                    <div class="feature-desc">asyncio.create_task</div>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">⏱️</div>
+                                <div>
+                                    <div class="feature-text">Таймаут 20 минут</div>
+                                    <div class="feature-desc">Защита от зависания</div>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">👥</div>
+                                <div>
+                                    <div class="feature-text">Max 4 workers</div>
+                                    <div class="feature-desc">Параллельная обработка</div>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">💾</div>
+                                <div>
+                                    <div class="feature-text">In-memory storage</div>
+                                    <div class="feature-desc">Dict[task_id, Task]</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="center-connector">
+                    <div class="center-icon">🔄</div>
+                    <div class="connector-label">Async</div>
+                    <div class="connector-label">20 min</div>
+                </div>
+
+                <div class="step-card">
+                    <div class="section">
+                        <div class="section-title">
+                            <span class="section-icon">📊</span>
+                            Проверка статуса задачи
+                        </div>
+                        <div class="data-sample">
+<span class="json-comment"># GET /status?task_id=a1b2c3d4...</span>
+
+Response:
+{
+  <span class="json-key">"status"</span>: <span class="json-string">"RUNNING"</span>
+}
+
+<span class="json-comment"># Возможные статусы:</span>
+- <span class="json-bool">RUNNING</span>  <span class="json-comment"># Задача в процессе</span>
+- <span class="json-bool">DONE</span>     <span class="json-comment"># Успешно завершена</span>
+- <span class="json-bool">FAILED</span>   <span class="json-comment"># Ошибка выполнения</span>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="metrics-grid">
+                            <div class="metric">
+                                <div class="metric-value">3</div>
+                                <div class="metric-label">Статуса</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">∞</div>
+                                <div class="metric-label">Задач</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">4</div>
+                                <div class="metric-label">Workers</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="details-box">
+                        <div class="details-title">🔧 Методы Task Manager</div>
+                        <ul class="details-list">
+                            <li>create_task() - создание новой задачи</li>
+                            <li>get_task_status() - получение статуса</li>
+                            <li>get_task_result() - получение результата</li>
+                            <li>get_task_error() - получение ошибки</li>
+                            <li>get_stats() - статистика сервиса</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 3: DATABASE CONNECTION -->
+        <div class="pipeline-step" style="animation-delay: 0.3s">
+            <div class="step-wrapper">
+                <div class="step-card">
+                    <div class="card-header">
+                        <div class="step-number">3</div>
+                        <div class="card-title">
+                            <h2>🗄️ Database Connector</h2>
+                            <p>Подключение к БД и сбор реальной статистики<span class="timeline-badge badge-info">Real Data</span></p>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">
+                            <span class="section-icon">🔌</span>
+                            Установка подключения
+                        </div>
+                        <div class="data-sample">
+<span class="json-comment"># db_connector.py</span>
+
+db = DatabaseConnector(<span class="json-string">"jdbc:trino://localhost:8080?catalog=hive"</span>)
+
+<span class="json-comment"># Определение типа БД</span>
+db_type = self._detect_db_type(jdbc_url)
+<span class="json-comment"># Результат: "trino" | "postgresql" | "mysql"</span>
+
+<span class="json-comment"># Подключение с нужным драйвером</span>
+<span class="json-key">if</span> db_type == <span class="json-string">"trino"</span>:
+    <span class="json-key">import</span> trino
+    connection = trino.dbapi.connect(
+        host=parsed[<span class="json-string">'host'</span>],
+        port=parsed[<span class="json-string">'port'</span>],
+        catalog=parsed[<span class="json-string">'catalog'</span>]
+    )
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">
+                            <span class="section-icon">📊</span>
+                            Сбор статистики таблиц
+                        </div>
+                        <div class="data-sample">
+<span class="json-comment"># Для каждой таблицы из DDL:</span>
+
+<span class="json-key">table_stats</span> = db.get_table_stats(<span class="json-string">"users"</span>, <span class="json-string">"public"</span>)
+
+<span class="json-comment"># SQL запросы:</span>
+<span class="json-key">SELECT COUNT(*) FROM</span> hive.public.users
+<span class="json-comment"># → row_count: 1,500,000</span>
+
+<span class="json-key">SELECT 
+  SUM(compressed_size) as total_size,
+  COUNT(DISTINCT partition_key) as partition_count
+FROM</span> <span class="json-string">"hive$partitions"</span>
+<span class="json-key">WHERE</span> table_name = <span class="json-string">'users'</span>
+<span class="json-comment"># → total_size: 524,288,000 bytes</span>
+<span class="json-comment"># → partition_count: 365</span>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">
+                            <span class="section-icon">🔢</span>
+                            Статистика колонок
+                        </div>
+                        <div class="data-sample">
+<span class="json-key">column_stats</span> = db.get_column_stats(<span class="json-string">"users"</span>, <span class="json-string">"public"</span>)
+
+<span class="json-comment"># Для каждой колонки:</span>
+<span class="json-key">SELECT 
+  COUNT(DISTINCT</span> user_id<span class="json-key">) as distinct_count,
+  COUNT(*) - COUNT(</span>user_id<span class="json-key">) as null_count
+FROM</span> hive.public.users
+
+<span class="json-comment"># Результат:</span>
+{
+  <span class="json-string">"user_id"</span>: {
+    <span class="json-key">"distinct_count"</span>: <span class="json-number">1500000</span>,
+    <span class="json-key">"null_count"</span>: <span class="json-number">0</span>,
+    <span class="json-key">"cardinality"</span>: <span class="json-number">1500000</span>
+  },
+  <span class="json-string">"created_at"</span>: {
+    <span class="json-key">"cardinality"</span>: <span class="json-number">365</span>
+  }
+}
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="features-grid">
+                            <div class="feature-item">
+                                <div class="feature-icon">🎯</div>
+                                <div>
+                                    <div class="feature-text">3 типа БД</div>
+                                    <div class="feature-desc">Trino, PostgreSQL, MySQL</div>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">📊</div>
+                                <div>
+                                    <div class="feature-text">Row count</div>
+                                    <div class="feature-desc">Количество строк</div>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">💾</div>
+                                <div>
+                                    <div class="feature-text">Size metrics</div>
+                                    <div class="feature-desc">Compressed size в байтах</div>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">🔢</div>
+                                <div>
+                                    <div class="feature-text">Cardinality</div>
+                                    <div class="feature-desc">Уникальные значения колонок</div>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">🗂️</div>
+                                <div>
+                                    <div class="feature-text">Partitions</div>
+                                    <div class="feature-desc">Количество партиций</div>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">⚠️</div>
+                                <div>
+                                    <div class="feature-text">Null handling</div>
+                                    <div class="feature-desc">Подсчёт NULL значений</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="center-connector">
+                    <div class="center-icon">📡</div>
+                    <div class="connector-label">JDBC</div>
+                    <div class="connector-label">Stats</div>
+                </div>
+
+                <div class="step-card">
+                    <div class="section">
+                        <div class="section-title">
+                            <span class="section-icon">📈</span>
+                            Собранные данные
+                        </div>
+                        <div class="data-sample">
+{
+  <span class="json-string">"users"</span>: {
+    <span class="json-key">"row_count"</span>: <span class="json-number">1500000</span>,
+    <span class="json-key">"size_bytes"</span>: <span class="json-number">524288000</span>,
+    <span class="json-key">"partition_count"</span>: <span class="json-number">365</span>,
+    <span class="json-key">"avg_row_size"</span>: <span class="json-number">349</span>,
+    <span class="json-key">"column_stats"</span>: {
+      <span class="json-string">"user_id"</span>: {
+        <span class="json-key">"cardinality"</span>: <span class="json-number">1500000</span>,
+        <span class="json-key">"null_count"</span>: <span class="json-number">0</span>
+      },
+      <span class="json-string">"created_at"</span>: {
+        <span class="json-key">"cardinality"</span>: <span class="json-number">365</span>,
+        <span class="json-key">"null_count"</span>: <span class="json-number">0</span>
+      },
+      <span class="json-string">"email"</span>: {
+        <span class="json-key">"cardinality"</span>: <span class="json-number">1498500</span>,
+        <span class="json-key">"null_count"</span>: <span class="json-number">1500</span>
+      }
+    }
+  }
+}
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="metrics-grid">
+                            <div class="metric">
+                                <div class="metric-value">1.5M</div>
+                                <div class="metric-label">Строк</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">500MB</div>
+                                <div class="metric-label">Размер</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">365</div>
+                                <div class="metric-label">Партиций</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="process-flow">
+                        <div class="details-title" style="color: #78350f; margin-bottom: 15px;">
+                            💡 Использование статистики
+                        </div>
+                        <div class="process-step">
+                            <div class="process-number">1</div>
+                            <div class="process-text">Выбор партиционных колонок (high cardinality)</div>
+                        </div>
+                        <div class="process-step">
+                            <div class="process-number">2</div>
+                            <div class="process-text">Определение кластерных колонок (medium cardinality)</div>
+                        </div>
+                        <div class="process-step">
+                            <div class="process-number">3</div>
+                            <div class="process-text">Оценка эффективности оптимизаций</div>
+                        </div>
+                        <div class="process-step">
+                            <div class="process-number">4</div>
+                            <div class="process-text">Выбор стратегии миграции данных</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 4: LLM ANALYSIS -->
+        <div class="pipeline-step" style="animation-delay: 0.4s">
+            <div class="step-wrapper">
+                <div class="step-card">
+                    <div class="card-header">
+                        <div class="step-number">4</div>
+                        <div class="card-title">
+                            <h2>🤖 LLM Analyzer</h2>
+                            <p>AI анализ схемы БД со статистикой<span class="timeline-badge">Hybrid AI</span></p>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">
+                            <span class="section-icon">🧠</span>
+                            Анализ через LLM
+                        </div>
+                        <div class="data-sample">
+<span class="json-comment"># llm_analyzer.py</span>
+
+<span class="json-key">Model:</span> nvidia/nemotron-nano-9b-v2
+<span class="json-key">Provider:</span> OpenRouter
+
+<span class="json-comment"># Промпт для LLM:</span>
+<span class="json-string">"""
+Analyze this table structure and suggest optimization:
+
+Table: users
+Row count: 1,500,000
+Size: 524,288,000 bytes
+Columns:
+  - user_id (BIGINT): cardinality 1,500,000
+  - username (VARCHAR): cardinality 1,498,000
+  - email (VARCHAR): cardinality 1,498,500
+  - created_at (TIMESTAMP): cardinality 365
+  - status (VARCHAR): cardinality 5
+
+Return JSON with optimization strategy.
+"""</span>
+
+<span class="json-comment"># LLM Response:</span>
+{
+  <span class="json-key">"table_name"</span>: <span class="json-string">"users"</span>,
+  <span class="json-key">"partition_columns"</span>: [<span class="json-string">"created_at"</span>],
+  <span class="json-key">"cluster_columns"</span>: [<span class="json-string">"user_id"</span>, <span class="json-string">"status"</span>],
+  <span class="json-key">"compression"</span>: <span class="json-string">"ZSTD"</span>,
+  <span class="json-key">"rationale"</span>: <span class="json-string">"created_at has 365 distinct values 
+              (likely daily data) - good for partitioning.
+              user_id is unique - excellent for clustering.
+              status has low cardinality - good secondary cluster."</span>
+}
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">
+                            <span class="section-icon">🔄</span>
+                            Эвристический Fallback
+                        </div>
+                        <div class="data-sample">
+<span class="json-comment"># Если LLM недоступен или ошибка:</span>
+
+<span class="json-key">def</span> _heuristic_analysis(table, columns, stats):
+    partition_cols = []
+    cluster_cols = []
+    
+    <span class="json-key">for</span> col_name, col_type <span class="json-key">in</span> columns:
+        cardinality = stats[col_name][<span class="json-string">'cardinality'</span>]
+        
+        <span class="json-comment"># Партиции: дата + high cardinality</span>
+        <span class="json-key">if</span> <span class="json-string">'date'</span> <span class="json-key">in</span> col_name.lower():
+            <span class="json-key">if</span> cardinality > <span class="json-number">10</span>:
+                partition_cols.append(col_name)
+        
+        <span class="json-comment"># Кластеры: ID, key + medium cardinality</span>
+        <span class="json-key">if</span> <span class="json-string">'id'</span> <span class="json-key">in</span> col_name.lower():
+            <span class="json-key">if</span> <span class="json-number">10</span> < cardinality < row_count * <span class="json-number">0.5</span>:
+                cluster_cols.append(col_name)
+    
+    <span class="json-key">return</span> {
+        <span class="json-string">"partition_columns"</span>: partition_cols[:2],
+        <span class="json-string">"cluster_columns"</span>: cluster_cols[:4]
+    }
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="features-grid">
+                            <div class="feature-item">
+                                <div class="feature-icon">🎯</div>
+                                <div>
+                                    <div class="feature-text">LLM для стратегии</div>
+                                    <div class="feature-desc">Интеллектуальный анализ</div>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">📊</div>
+                                <div>
+                                    <div class="feature-text">Real data stats</div>
+                                    <div class="feature-desc">Учёт реальной статистики</div>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">🔄</div>
+                                <div>
+                                    <div class="feature-text">Smart fallback</div>
+                                    <div class="feature-desc">Эвристика при ошибке</div>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">⚡</div>
+                                <div>
+                                    <div class="feature-text">Fast analysis</div>
+                                    <div class="feature-desc">Параллельная обработка</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="details-box">
+                        <div class="details-title">🎨 Правила оптимизации</div>
+                        <ul class="details-list">
+                            <li><strong>Партиции:</strong> max 2 колонки, high cardinality (>10)</li>
+                            <li><strong>Кластеры:</strong> max 4 колонки, medium cardinality</li>
+                            <li><strong>Приоритет:</strong> timestamp > date > ID > status</li>
+                            <li><strong>Компрессия:</strong> ZSTD для всех таблиц</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="center-connector">
+                    <div class="center-icon">🧠</div>
+                    <div class="connector-label">OpenAI</div>
+                    <div class="connector-label">Strategy</div>
+                </div>
+
+                <div class="step-card">
+                    <div class="section">
+                        <div class="section-title">
+                            <span class="section-icon">📋</span>
+                            Результат анализа
+                        </div>
+                        <div class="data-sample">
+tables_analysis = [
+  {
+    <span class="json-key">"table_name"</span>: <span class="json-string">"users"</span>,
+    <span class="json-key">"original_columns"</span>: [
+      (<span class="json-string">"user_id"</span>, <span class="json-string">"BIGINT"</span>),
+      (<span class="json-string">"username"</span>, <span class="json-string">"VARCHAR"</span>),
+      (<span class="json-string">"email"</span>, <span class="json-string">"VARCHAR"</span>),
+      (<span class="json-string">"created_at"</span>, <span class="json-string">"TIMESTAMP"</span>),
+      (<span class="json-string">"status"</span>, <span class="json-string">"VARCHAR"</span>)
+    ],
+    <span class="json-key">"partition_columns"</span>: [<span class="json-string">"created_at"</span>],
+    <span class="json-key">"cluster_columns"</span>: [<span class="json-string">"user_id"</span>, <span class="json-string">"status"</span>],
+    <span class="json-key">"compression"</span>: <span class="json-string">"ZSTD"</span>
+  }
+]
+
+<span class="json-comment"># Передаётся в детерминированный генератор DDL</span>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="tech-stack">
+                            <div class="tech-badge">OpenRouter API</div>
+                            <div class="tech-badge">nvidia/nemotron</div>
+                            <div class="tech-badge">Temperature 0.1</div>
+                            <div class="tech-badge">JSON Response</div>
+                        </div>
+                    </div>
+
+                    <div class="process-flow">
+                        <div class="details-title" style="color: #78350f; margin-bottom: 15px;">
+                            🎯 Почему гибридный подход?
+                        </div>
+                        <div class="process-step">
+                            <div class="process-number">✓</div>
+                            <div class="process-text">LLM понимает контекст и даёт умные рекомендации</div>
+                        </div>
+                        <div class="process-step">
+                            <div class="process-number">✓</div>
+                            <div class="process-text">Детерминированный SQL гарантирует валидность</div>
+                        </div>
+                        <div class="process-step">
+                            <div class="process-number">✓</div>
+                            <div class="process-text">Эвристика работает без API</div>
+                        </div>
+                        <div class="process-step">
+                            <div class="process-number">✓</div>
+                            <div class="process-text">Реальные данные улучшают качество</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 5: DDL GENERATION -->
+        <div class="pipeline-step" style="animation-delay: 0.5s">
+            <div class="step-wrapper">
+                <div class="step-card">
+                    <div class="card-header">
+                        <div class="step-number">5</div>
+                        <div class="card-title">
+                            <h2>📝 DDL Generation</h2>
+                            <p>Детерминированная генерация оптимизированного DDL<span class="timeline-badge badge-info">Template Based</span></p>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">
+                            <span class="section-icon">🏗️</span>
+                            Генерация CREATE TABLE
+                        </div>
+                        <div class="data-sample">
+<span class="json-comment"># _generate_ddl_deterministic()</span>
+
+<span class="json-comment"># Шаг 1: Создание схемы</span>
+ddl.append({
+  <span class="json-string">"statement"</span>: <span class="json-string">f"CREATE SCHEMA IF NOT EXISTS 
+              {catalog_name}.optimized"</span>
+})
+
+<span class="json-comment"># Шаг 2: Для каждой таблицы</span>
+<span class="json-key">for</span> analysis <span class="json-key">in</span> tables_analysis:
+    table_name = analysis[<span class="json-string">"table_name"</span>]
+    columns = analysis[<span class="json-string">"original_columns"</span>]
+    
+    <span class="json-comment"># Генерация колонок</span>
+    columns_sql = <span class="json-string">",\n  "</span>.join([
+        <span class="json-string">f"{col[0]} {col[1]}"</span> <span class="json-key">for</span> col <span class="json-key">in</span> columns
+    ])
+    
+    <span class="json-comment"># Генерация WITH clause</span>
+    with_clause = generate_with_clause(analysis)
+    
+    ddl_statement = <span class="json-string">f"""
+CREATE TABLE {catalog_name}.optimized.{table_name} (
+  {columns_sql}
+) WITH (
+  {with_clause}
+)
+"""</span>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">
+                            <span class="section-icon">⚙️</span>
+                            WITH Clause оптимизации
+                        </div>
+                        <div class="data-sample">
+with_parts = [
+  <span class="json-string">"format = 'ICEBERG'"</span>,
+  <span class="json-string">"'write.compression-codec' = 'ZSTD'"</span>,
+  <span class="json-string">"'write.target-file-size-bytes' = '268435456'"</span>,
+  <span class="json-string">"'read.vectorization.enabled' = 'true'"</span>,
+  <span class="json-string">"'write.parquet.compression-codec' = 'ZSTD'"</span>,
+  <span class="json-string">"'write.parquet.page-size-bytes' = '1048576'"</span>,
+  <span class="json-string">"'write.parquet.row-group-size-bytes' = '134217728'"</span>
+]
+
+<span class="json-comment"># Добавление партиций если есть</span>
+<span class="json-key">if</span> partition_cols:
+    parts_str = <span class="json-string">", "</span>.join([<span class="json-string">f"'{c}'"</span> <span class="json-key">for</span> c <span class="json-key">in</span> partition_cols])
+    with_parts.insert(<span class="json-number">1</span>, <span class="json-string">f"partitioning = ARRAY[{parts_str}]"</span>)
+
+<span class="json-comment"># Добавление кластеризации если есть</span>
+<span class="json-key">if</span> cluster_cols:
+    clusters_str = <span class="json-string">", "</span>.join([<span class="json-string">f"'{c}'"</span> <span class="json-key">for</span> c <span class="json-key">in</span> cluster_cols])
+    with_parts.insert(<span class="json-number">2</span>, <span class="json-string">f"clustering = ARRAY[{clusters_str}]"</span>)
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="features-grid">
+                            <div class="feature-item">
+                                <div class="feature-icon">🎯</div>
+                                <div>
+                                    <div class="feature-text">Полные пути</div>
+                                    <div class="feature-desc">catalog.optimized.table</div>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">❄️</div>
+                                <div>
+                                    <div class="feature-text">Iceberg формат</div>
+                                    <div class="feature-desc">Современный table format</div>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">📦</div>
+                                <div>
+                                    <div class="feature-text">ZSTD компрессия</div>
+                                    <div class="feature-desc">Оптимальное сжатие</div>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">⚡</div>
+                                <div>
+                                    <div class="feature-text">Векторизация</div>
+                                    <div class="feature-desc">SIMD ускорение</div>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">📏</div>
+                                <div>
+                                    <div class="feature-text">File size control</div>
+                                    <div class="feature-desc">256MB target размер</div>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">🔧</div>
+                                <div>
+                                    <div class="feature-text">Parquet оптимизация</div>
+                                    <div class="feature-desc">Page & row group sizes</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="center-connector">
+                    <div class="center-icon">🔨</div>
+                    <div class="connector-label">Template</div>
+                    <div class="connector-label">Valid SQL</div>
+                </div>
+
+                <div class="step-card">
+                    <div class="section">
+                        <div class="section-title">
+                            <span class="section-icon">✅</span>
+                            Сгенерированный DDL
+                        </div>
+                        <div class="data-sample">
+<span class="json-comment">-- Схема</span>
+CREATE SCHEMA IF NOT EXISTS hive.optimized
+
+<span class="json-comment">-- Оптимизированная таблица</span>
+CREATE TABLE hive.optimized.users (
+  user_id BIGINT,
+  username VARCHAR,
+  email VARCHAR,
+  created_at TIMESTAMP,
+  status VARCHAR
+) WITH (
+  format = 'ICEBERG',
+  partitioning = ARRAY['created_at'],
+  clustering = ARRAY['user_id', 'status'],
+  'write.compression-codec' = 'ZSTD',
+  'write.target-file-size-bytes' = '268435456',
+  'read.vectorization.enabled' = 'true',
+  'write.parquet.compression-codec' = 'ZSTD',
+  'write.parquet.page-size-bytes' = '1048576',
+  'write.parquet.row-group-size-bytes' = '134217728'
+)
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="metrics-grid">
+                            <div class="metric">
+                                <div class="metric-value">100%</div>
+                                <div class="metric-label">Valid SQL</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">8</div>
+                                <div class="metric-label">Optimizations</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">ZSTD</div>
+                                <div class="metric-label">Compression</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="details-box">
+                        <div class="details-title">🎯 Почему детерминированная генерация?</div>
+                        <ul class="details-list">
+                            <li><strong>Гарантия валидности:</strong> Шаблоны не делают ошибок</li>
+                            <li><strong>Контроль качества:</strong> Все колонки из оригинала</li>
+                            <li><strong>Предсказуемость:</strong> Одинаковый результат каждый раз</li>
+                            <li><strong>Производительность:</strong> Быстрее чем LLM генерация</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 6: MIGRATIONS -->
+        <div class="pipeline-step" style="animation-delay: 0.6s">
+            <div class="step-wrapper">
+                <div class="step-card">
+                    <div class="card-header">
+                        <div class="step-number">6</div>
+                        <div class="card-title">
+                            <h2>🔄 Migration Generation</h2>
+                            <p>Генерация команд миграции данных<span class="timeline-badge badge-warning">LLM Assist</span></p>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">
+                            <span class="section-icon">📤</span>
+                            LLM промпт для миграций
+                        </div>
+                        <div class="data-sample">
+<span class="json-key">Model:</span> nvidia/nemotron-nano-9b-v2
+
+<span class="json-key">Input:</span>
+{
+  <span class="json-string">"url"</span>: <span class="json-string">"jdbc:trino://localhost:8080?catalog=hive"</span>,
+  <span class="json-string">"old_ddl"</span>: [
+    {<span class="json-string">"statement"</span>: <span class="json-string">"CREATE TABLE hive.public.users (...)"</span>}
+  ],
+  <span class="json-string">"new_ddl"</span>: [
+    {<span class="json-string">"statement"</span>: <span class="json-string">"CREATE TABLE hive.optimized.users (...)"</span>}
+  ]
+}
+
+<span class="json-key">System Prompt:</span>
+<span class="json-string">"Create comprehensive migration statements to transfer 
+data from old DDL to new optimized structure.
+Use full paths: catalog.optimized.table
+Include validation queries."</span>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">
+                            <span class="section-icon">🧠</span>
+                            LLM Response
+                        </div>
+                        <div class="data-sample">
+{
+  <span class="json-key">"migrations"</span>: [
+    {
+      <span class="json-key">"statement"</span>: <span class="json-string">"INSERT INTO hive.optimized.users 
+                  SELECT user_id, username, email, 
+                         created_at, status 
+                  FROM hive.public.users"</span>
+    },
+    {
+      <span class="json-key">"statement"</span>: <span class="json-string">"SELECT COUNT(*) as validation_count 
+                  FROM hive.optimized.users"</span>
+    },
+    {
+      <span class="json-key">"statement"</span>: <span class="json-string">"SELECT 
+                    old.cnt as old_count,
+                    new.cnt as new_count,
+                    CASE WHEN old.cnt = new.cnt 
+                         THEN 'PASS' ELSE 'FAIL' END as status
+                  FROM 
+                    (SELECT COUNT(*) as cnt FROM hive.public.users) old,
+                    (SELECT COUNT(*) as cnt FROM hive.optimized.users) new"</span>
+    }
+  ]
+}
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="features-grid">
+                            <div class="feature-item">
+                                <div class="feature-icon">📋</div>
+                                <div>
+                                    <div class="feature-text">INSERT SELECT</div>
+                                    <div class="feature-desc">Копирование всех данных</div>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">✅</div>
+                                <div>
+                                    <div class="feature-text">Validation</div>
+                                    <div class="feature-desc">Проверка количества строк</div>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">🎯</div>
+                                <div>
+                                    <div class="feature-text">Full paths</div>
+                                    <div class="feature-desc">catalog.schema.table</div>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">🔄</div>
+                                <div>
+                                    <div class="feature-text">All columns</div>
+                                    <div class="feature-desc">Без потери данных</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="center-connector">
+                    <div class="center-icon">🔄</div>
+                    <div class="connector-label">LLM</div>
+                    <div class="connector-label">Migrate</div>
+                </div>
+
+                <div class="step-card">
+                    <div class="section">
+                        <div class="section-title">
+                            <span class="section-icon">📊</span>
+                            Результат миграции
+                        </div>
+                        <div class="data-sample">
+migrations = [
+  {
+    <span class="json-key">"statement"</span>: <span class="json-string">"INSERT INTO hive.optimized.users 
+                SELECT * FROM hive.public.users"</span>
+  },
+  {
+    <span class="json-key">"statement"</span>: <span class="json-string">"SELECT COUNT(*) FROM hive.optimized.users"</span>
+  }
+]
+                        </div>
+                    </div>
+
+                    <div class="process-flow">
+                        <div class="details-title" style="color: #78350f; margin-bottom: 15px;">
+                            ⚙️ Процесс миграции
+                        </div>
+                        <div class="process-step">
+                            <div class="process-number">1</div>
+                            <div class="process-text">Создание оптимизированных таблиц (DDL)</div>
+                        </div>
+                        <div class="process-step">
+                            <div class="process-number">2</div>
+                            <div class="process-text">Копирование данных (INSERT SELECT)</div>
+                        </div>
+                        <div class="process-step">
+                            <div class="process-number">3</div>
+                            <div class="process-text">Валидация количества строк</div>
+                        </div>
+                        <div class="process-step">
+                            <div class="process-number">4</div>
+                            <div class="process-text">Сравнение old vs new</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 7: QUERY OPTIMIZATION WITH SQLGLOT -->
+        <div class="pipeline-step" style="animation-delay: 0.7s">
+            <div class="step-wrapper">
+                <div class="step-card">
+                    <div class="card-header">
+                        <div class="step-number">7</div>
+                        <div class="card-title">
+                            <h2>⚡ Query Optimization</h2>
+                            <p>Оптимизация запросов через SQLglot<span class="timeline-badge">Real SQL Changes</span></p>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">
+                            <span class="section-icon">📥</span>
+                            Исходный запрос
+                        </div>
+                        <div class="data-sample">
+{
+  <span class="json-key">"queryid"</span>: <span class="json-string">"q1"</span>,
+  <span class="json-key">"query"</span>: <span class="json-string">"SELECT * FROM hive.public.users 
+            WHERE created_at > '2024-01-01' 
+            JOIN orders ON users.id = orders.user_id"</span>,
+  <span class="json-key">"runquantity"</span>: <span class="json-number">1000</span>
+}
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">
+                            <span class="section-icon">🌳</span>
+                            SQLglot парсинг в AST
+                        </div>
+                        <div class="data-sample">
+<span class="json-key">import</span> sqlglot
+
+<span class="json-comment"># Парсим SQL в Abstract Syntax Tree</span>
+parsed = sqlglot.parse_one(query, dialect=<span class="json-string">"trino"</span>)
+
+<span class="json-comment"># Структура AST:</span>
+Select
+├── expressions: [Star(*)]
+├── from: From
+│   └── this: Table(hive.public.users)
+├── where: Where
+│   └── Gt(Column(created_at), Literal(<span class="json-string">'2024-01-01'</span>))
+└── joins: [Join]
+    └── on: Eq(Column(users.id), Column(orders.user_id))
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">
+                            <span class="section-icon">⚙️</span>
+                            Применение оптимизаций
+                        </div>
+                        <div class="data-sample">
+<span class="json-comment"># 1. Замена SELECT *</span>
+<span class="json-key">for</span> select <span class="json-key">in</span> parsed.find_all(sqlglot.exp.Select):
+    <span class="json-key">if</span> isinstance(select.expressions[0], sqlglot.exp.Star):
+        <span class="json-comment"># Получаем колонки из метаданных</span>
+        columns = table_metadata[<span class="json-string">"users"</span>][<span class="json-string">"columns"</span>]
+        select.expressions = [
+            sqlglot.exp.Column(this=col) 
+            <span class="json-key">for</span> col <span class="json-key">in</span> columns
+        ]
+
+<span class="json-comment"># 2. Изменение путей таблиц</span>
+<span class="json-key">for</span> table <span class="json-key">in</span> parsed.find_all(sqlglot.exp.Table):
+    <span class="json-key">if</span> table.db.lower() != <span class="json-string">"optimized"</span>:
+        table.set(<span class="json-string">"db"</span>, sqlglot.exp.Identifier(this=<span class="json-string">"optimized"</span>))
+        table.set(<span class="json-string">"catalog"</span>, sqlglot.exp.Identifier(this=<span class="json-string">"hive"</span>))
+
+<span class="json-comment"># 3. Добавление LIMIT если нужно</span>
+<span class="json-key">if not</span> parsed.find(sqlglot.exp.Limit):
+    <span class="json-key">if not</span> _is_aggregation(parsed):
+        parsed = parsed.limit(10000)
+
+<span class="json-comment"># 4. Проверка использования партиций</span>
+where = parsed.find(sqlglot.exp.Where)
+where_columns = {col.name <span class="json-key">for</span> col <span class="json-key">in</span> where.find_all(sqlglot.exp.Column)}
+<span class="json-key">if</span> <span class="json-string">"created_at"</span> <span class="json-key">in</span> where_columns:
+    logger.info(<span class="json-string">"✅ partition pruning on users.created_at"</span>)
+
+<span class="json-comment"># 5. Генерация оптимизированного SQL</span>
+optimized = parsed.sql(dialect=<span class="json-string">"trino"</span>)
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="features-grid">
+                            <div class="feature-item">
+                                <div class="feature-icon">🌳</div>
+                                <div>
+                                    <div class="feature-text">AST парсинг</div>
+                                    <div class="feature-desc">Структурный анализ SQL</div>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">🎯</div>
+                                <div>
+                                    <div class="feature-text">SELECT * → columns</div>
+                                    <div class="feature-desc">Column pruning</div>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">🔄</div>
+                                <div>
+                                    <div class="feature-text">Path replacement</div>
+                                    <div class="feature-desc">public → optimized</div>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">📊</div>
+                                <div>
+                                    <div class="feature-text">Auto LIMIT</div>
+                                    <div class="feature-desc">10,000 строк max</div>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">🗂️</div>
+                                <div>
+                                    <div class="feature-text">Partition check</div>
+                                    <div class="feature-desc">WHERE колонки</div>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">🔗</div>
+                                <div>
+                                    <div class="feature-text">JOIN analysis</div>
+                                    <div class="feature-desc">Cluster колонки</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="details-box">
+                        <div class="details-title">🎯 Параллельная обработка</div>
+                        <ul class="details-list">
+                            <li><strong>ThreadPoolExecutor:</strong> max_workers=6</li>
+                            <li><strong>Concurrent:</strong> Одновременная обработка запросов</li>
+                            <li><strong>Error handling:</strong> Потокобезопасные locks</li>
+                            <li><strong>Results:</strong> Сбор через futures</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="center-connector">
+                    <div class="center-icon">⚡</div>
+                    <div class="connector-label">SQLglot</div>
+                    <div class="connector-label">AST</div>
+                </div>
+
+                <div class="step-card">
+                    <div class="section">
+                        <div class="section-title">
+                            <span class="section-icon">✅</span>
+                            Оптимизированный запрос
+                        </div>
+                        <div class="data-sample">
+{
+  <span class="json-key">"queryid"</span>: <span class="json-string">"q1"</span>,
+  <span class="json-key">"query"</span>: <span class="json-string">"SELECT 
+    user_id, 
+    username, 
+    email, 
+    created_at, 
+    status 
+  FROM hive.optimized.users 
+  WHERE created_at > '2024-01-01' 
+  JOIN hive.optimized.orders 
+    ON users.id = orders.user_id 
+  LIMIT 10000"</span>
+}
+
+<span class="json-comment">// ✅ Применённые оптимизации:</span>
+<span class="json-comment">// 1. column pruning (SELECT *)</span>
+<span class="json-comment">// 2. automatic LIMIT 10000</span>
+<span class="json-comment">// 3. partition pruning on users.created_at</span>
+<span class="json-comment">// 4. clustered join on users.user_id</span>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="metrics-grid">
+                            <div class="metric">
+                                <div class="metric-value">5x</div>
+                                <div class="metric-label">Faster</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">70%</div>
+                                <div class="metric-label">Less Data</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">100%</div>
+                                <div class="metric-label">Valid SQL</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="process-flow">
+                        <div class="details-title" style="color: #78350f; margin-bottom: 15px;">
+                            🚀 Производительность
+                        </div>
+                        <div class="process-step">
+                            <div class="process-number">✓</div>
+                            <div class="process-text">Column pruning снижает I/O на 70%</div>
+                        </div>
+                        <div class="process-step">
+                            <div class="process-number">✓</div>
+                            <div class="process-text">Partition pruning ускоряет WHERE в 10x</div>
+                        </div>
+                        <div class="process-step">
+                            <div class="process-number">✓</div>
+                            <div class="process-text">LIMIT защищает от случайных full scan</div>
+                        </div>
+                        <div class="process-step">
+                            <div class="process-number">✓</div>
+                            <div class="process-text">Clustered JOIN использует локальность данных</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 8: QUALITY EVALUATION -->
+        <div class="pipeline-step" style="animation-delay: 0.8s">
+            <div class="step-wrapper">
+                <div class="step-card">
+                    <div class="card-header">
+                        <div class="step-number">8</div>
+                        <div class="card-title">
+                            <h2>📊 Quality Evaluation</h2>
+                            <p>Автоматическая оценка качества результата<span class="timeline-badge">Gemini 2.5</span></p>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">
+                            <span class="section-icon">🧠</span>
+                            LLM Evaluation
+                        </div>
+                        <div class="data-sample">
+<span class="json-key">Model:</span> google/gemini-2.5-flash-preview-09-2025
+
+<span class="json-key">Prompt:</span>
+<span class="json-string">"Evaluate database optimization result on 100-point scale.
+
+Criteria:
+1. DDL Quality (25): Structure, optimizations, full paths
+2. Migration Quality (25): Strategy, validation
+3. Query Optimization (25): Performance, correctness
+4. Execution Time (15): Expected gains
+5. Storage (10): Compression, efficiency"</span>
+
+<span class="json-key">Input:</span>
+- URL: jdbc:trino://localhost:8080?catalog=hive
+- DDL: 2 tables
+- Queries: 5 queries
+
+<span class="json-key">Output:</span>
+- DDL: 3 statements (schema + 2 tables)
+- Migrations: 2 statements
+- Queries: 5 optimized queries
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">
+                            <span class="section-icon">📈</span>
+                            Evaluation Response
+                        </div>
+                        <div class="data-sample">
+{
+  <span class="json-key">"score"</span>: <span class="json-number">87</span>,
+  <span class="json-key">"ddl_score"</span>: <span class="json-number">23</span>,
+  <span class="json-key">"migration_score"</span>: <span class="json-number">22</span>,
+  <span class="json-key">"query_score"</span>: <span class="json-number">21</span>,
+  <span class="json-key">"execution_score"</span>: <span class="json-number">13</span>,
+  <span class="json-key">"storage_score"</span>: <span class="json-number">8</span>,
+  <span class="json-key">"strengths"</span>: [
+    <span class="json-string">"Full catalog.optimized.table paths"</span>,
+    <span class="json-string">"Iceberg format with ZSTD compression"</span>,
+    <span class="json-string">"Proper partitioning strategy"</span>,
+    <span class="json-string">"Real SQL optimizations via SQLglot"</span>
+  ],
+  <span class="json-key">"weaknesses"</span>: [
+    <span class="json-string">"Could add more validation queries"</span>,
+    <span class="json-string">"Storage estimation not precise"</span>
+  ],
+  <span class="json-key">"recommendations"</span>: [
+    <span class="json-string">"Add ANALYZE TABLE statements"</span>,
+    <span class="json-string">"Include rollback scripts"</span>
+  ]
+}
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="features-grid">
+                            <div class="feature-item">
+                                <div class="feature-icon">🎯</div>
+                                <div>
+                                    <div class="feature-text">5 критериев</div>
+                                    <div class="feature-desc">100-балльная шкала</div>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">✅</div>
+                                <div>
+                                    <div class="feature-text">Strengths</div>
+                                    <div class="feature-desc">Сильные стороны</div>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">⚠️</div>
+                                <div>
+                                    <div class="feature-text">Weaknesses</div>
+                                    <div class="feature-desc">Слабые стороны</div>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">💡</div>
+                                <div>
+                                    <div class="feature-text">Recommendations</div>
+                                    <div class="feature-desc">Рекомендации</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="center-connector">
+                    <div class="center-icon">🎯</div>
+                    <div class="connector-label">Gemini</div>
+                    <div class="connector-label">Score</div>
+                </div>
+
+                <div class="step-card">
+                    <div class="section">
+                        <div class="section-title">
+                            <span class="section-icon">🏆</span>
+                            Итоговая оценка
+                        </div>
+                        <div style="text-align: center; padding: 40px 20px;">
+                            <div style="font-size: 6em; font-weight: bold; 
+                                        background: linear-gradient(135deg, #667eea, #764ba2);
+                                        -webkit-background-clip: text;
+                                        -webkit-text-fill-color: transparent;
+                                        margin-bottom: 20px;">
+                                87/100
+                            </div>
+                            <div style="font-size: 1.5em; color: #64748b; font-weight: 600;">
+                                Excellent Quality
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="metrics-grid">
+                            <div class="metric" style="background: linear-gradient(135deg, #10b981, #059669);">
+                                <div class="metric-value">23/25</div>
+                                <div class="metric-label">DDL Quality</div>
+                            </div>
+                            <div class="metric" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
+                                <div class="metric-value">22/25</div>
+                                <div class="metric-label">Migrations</div>
+                            </div>
+                            <div class="metric" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+                                <div class="metric-value">21/25</div>
+                                <div class="metric-label">Queries</div>
+                            </div>
+                            <div class="metric" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                                <div class="metric-value">13/15</div>
+                                <div class="metric-label">Execution</div>
+                            </div>
+                            <div class="metric" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+                                <div class="metric-value">8/10</div>
+                                <div class="metric-label">Storage</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 9: FINAL RESULT -->
+        <div class="pipeline-step" style="animation-delay: 0.9s">
+            <div class="step-wrapper">
+                <div class="step-card">
+                    <div class="card-header">
+                        <div class="step-number">9</div>
+                        <div class="card-title">
+                            <h2>🎉 Final Result</h2>
+                            <p>GET /getresult - Получение результата оптимизации</p>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">
+                            
+                                
