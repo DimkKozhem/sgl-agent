@@ -9,6 +9,7 @@ import asyncio
 from typing import Dict, Optional
 from .models import Task, TaskStatus, OptimizationRequest, OptimizationResult
 from .llm_analyzer import LLMAnalyzer
+from .simple_request_logger import save_task_io  # ✅ ДОБАВЛЕНО
 import logging
 
 logger = logging.getLogger(__name__)
@@ -96,6 +97,13 @@ class SimpleTaskManager:
         if not task:
             return
 
+        # ✅ ДОБАВЛЕНО: Подготовка input для логирования
+        input_data = {
+            "url": task.request.url,
+            "ddl": task.request.ddl,
+            "queries": task.request.queries
+        }
+
         try:
             self._running_tasks += 1
             logger.info(f"Начинаем обработку задачи {task_id} с таймаутом {self.task_timeout_minutes} минут")
@@ -106,17 +114,33 @@ class SimpleTaskManager:
                 timeout=self.task_timeout_minutes * 60  # Конвертируем минуты в секунды
             )
 
+            # ✅ ДОБАВЛЕНО: Логирование успешного результата
+            if task.result:
+                output_data = {
+                    "ddl": task.result.ddl,
+                    "migrations": task.result.migrations,
+                    "queries": task.result.queries,
+                    "quality_score": task.result.quality_score
+                }
+                save_task_io(task_id, input_data, output_data)
+
         except asyncio.TimeoutError:
             error_msg = f"Задача {task_id} превысила лимит времени выполнения ({self.task_timeout_minutes} минут)"
             logger.error(error_msg)
             task.status = TaskStatus.FAILED
             task.error = error_msg
 
+            # ✅ ДОБАВЛЕНО: Логирование ошибки таймаута
+            save_task_io(task_id, input_data, error=error_msg)
+
         except Exception as e:
             error_msg = f"Ошибка при выполнении задачи {task_id}: {str(e)}"
             logger.error(error_msg)
             task.status = TaskStatus.FAILED
             task.error = error_msg
+
+            # ✅ ДОБАВЛЕНО: Логирование ошибки
+            save_task_io(task_id, input_data, error=error_msg)
 
         finally:
             self._running_tasks -= 1
@@ -172,8 +196,6 @@ class SimpleTaskManager:
             if not migrations:
                 migrations = [{"statement": "-- No migrations needed"}]
 
-            # ✅ ИСПРАВЛЕНО: queries приходят уже в правильном формате из llm_analyzer
-            # (только queryid и query без runquantity)
             if not queries:
                 # Создаем оптимизированные запросы на основе исходных
                 for query_data in request.queries:
@@ -182,37 +204,17 @@ class SimpleTaskManager:
                         "query": f"-- Optimized version of: {query_data['query'][:100]}..."
                     })
 
-            # Оцениваем качество результата
+            # ✅ ИСПРАВЛЕНО: Используем оценку из llm_result._meta
             quality_score = None
-            if self.llm_analyzer:
-                try:
-                    # Подготавливаем данные для оценки
-                    task_input_str = f"URL: {request.url}, DDL: {len(ddl)} statements, Queries: {len(request.queries)}"
+            if "_meta" in llm_result:
+                quality_score = llm_result["_meta"].get("quality_score")
+                if quality_score:
+                    logger.info(f"📊 Оценка качества из LLM анализа: {quality_score}/100")
 
-                    # Формируем детальный output с конкретными SQL-запросами
-                    output_parts = []
-                    if ddl:
-                        output_parts.append("DDL STATEMENTS:")
-                        for i, ddl_stmt in enumerate(ddl, 1):
-                            output_parts.append(f"{i}. {ddl_stmt['statement']}")
-
-                    if migrations:
-                        output_parts.append("\nMIGRATION STATEMENTS:")
-                        for i, mig_stmt in enumerate(migrations, 1):
-                            output_parts.append(f"{i}. {mig_stmt['statement']}")
-
-                    if queries:
-                        output_parts.append("\nOPTIMIZED QUERIES:")
-                        for i, query in enumerate(queries, 1):
-                            output_parts.append(f"{i}. ID: {query['queryid']}")
-                            output_parts.append(f"   Query: {query['query']}")
-
-                    output_str = "\n".join(output_parts)
-
-                    quality_score = self.llm_analyzer.evaluate_response(task_input_str, output_str)
-                    logger.info(f"📊 Оценка качества результата: {quality_score}/100")
-                except Exception as e:
-                    logger.warning(f"Ошибка при оценке качества: {e}")
+            # Если оценки нет в _meta, используем fallback
+            if quality_score is None:
+                logger.warning("⚠️ Оценка качества не найдена в результатах LLM, используем 50")
+                quality_score = 50
 
             return OptimizationResult(
                 ddl=ddl,
