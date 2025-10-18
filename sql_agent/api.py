@@ -131,11 +131,11 @@ async def get_presentation():
 
 # Создание менеджера задач с поддержкой LLM
 task_manager = SimpleTaskManager(
-    max_workers=10,              # Максимум 4 параллельные задачи
+    max_workers=10,              # Максимум 10 параллельные задачи
     task_timeout_minutes=20,    # Таймаут 20 минут на задачу
     use_llm=True,              # Использовать LLM анализатор
-    max_queue_size=100,        # Максимум 100 задач в очереди (защита от переполнения)
-    cleanup_after_hours=24     # Очистка завершенных задач через 24 часа
+    max_queue_size=100,        # Максимум xзадач в очереди (защита от переполнения)
+    cleanup_after_hours=72     # Очистка завершенных задач через x часа
 )
 
 
