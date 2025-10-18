@@ -1,0 +1,102 @@
+{
+  "task_id": "f3ffb01c-1955-41ec-899b-e107154309c3",
+  "timestamp": "2025-10-18T14:02:17.384338",
+  "input": {
+    "url": "jdbc:trino://localhost:8080?catalog=linear",
+    "ddl": [
+      {
+        "statement": "CREATE TABLE linear.public.users (user_id INTEGER, username VARCHAR(100), email VARCHAR(255), registration_date DATE, status VARCHAR(20))"
+      },
+      {
+        "statement": "CREATE TABLE linear.public.user_profiles (profile_id INTEGER, user_id INTEGER, first_name VARCHAR(100), last_name VARCHAR(100), phone VARCHAR(20), address TEXT, created_at TIMESTAMP)"
+      },
+      {
+        "statement": "CREATE TABLE linear.public.user_preferences (preference_id INTEGER, user_id INTEGER, category VARCHAR(50), setting_name VARCHAR(100), setting_value VARCHAR(500), updated_at TIMESTAMP)"
+      },
+      {
+        "statement": "CREATE TABLE linear.public.user_activity_logs (log_id INTEGER, user_id INTEGER, activity_type VARCHAR(50), activity_data JSON, timestamp TIMESTAMP, ip_address VARCHAR(45))"
+      }
+    ],
+    "queries": [
+      {
+        "queryid": "linear-user-search",
+        "query": "SELECT u.user_id, u.username, u.email, up.first_name, up.last_name, u.registration_date FROM linear.public.users u LEFT JOIN linear.public.user_profiles up ON u.user_id = up.user_id WHERE u.status = 'active' AND u.registration_date >= '2023-01-01' ORDER BY u.registration_date DESC LIMIT 100",
+        "runquantity": 250,
+        "executiontime": 8
+      },
+      {
+        "queryid": "linear-activity-analysis",
+        "query": "SELECT u.username, COUNT(ual.log_id) as total_activities, COUNT(DISTINCT DATE(ual.timestamp)) as active_days, MAX(ual.timestamp) as last_activity FROM linear.public.users u LEFT JOIN linear.public.user_activity_logs ual ON u.user_id = ual.user_id WHERE u.status = 'active' GROUP BY u.user_id, u.username HAVING COUNT(ual.log_id) > 10 ORDER BY total_activities DESC LIMIT 50",
+        "runquantity": 75,
+        "executiontime": 12
+      },
+      {
+        "queryid": "linear-preferences-report",
+        "query": "SELECT up.category, up.setting_name, COUNT(*) as user_count, COUNT(DISTINCT up.user_id) as unique_users FROM linear.public.user_preferences up JOIN linear.public.users u ON up.user_id = u.user_id WHERE u.status = 'active' GROUP BY up.category, up.setting_name ORDER BY user_count DESC",
+        "runquantity": 30,
+        "executiontime": 5
+      }
+    ]
+  },
+  "output": {
+    "ddl": [
+      {
+        "statement": "CREATE SCHEMA IF NOT EXISTS linear.optimized"
+      },
+      {
+        "statement": "CREATE TABLE linear.optimized.users (\n  user_id INTEGER,\n  username VARCHAR(100),\n  email VARCHAR(255),\n  registration_date DATE,\n  status VARCHAR(20)\n) WITH (\n  format = 'ICEBERG',\n  partitioning = ARRAY['registration_date'],\n  clustering = ARRAY['user_id', 'status'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE linear.optimized.user_profiles (\n  profile_id INTEGER,\n  user_id INTEGER,\n  first_name VARCHAR(100),\n  last_name VARCHAR(100),\n  phone VARCHAR(20),\n  address VARCHAR,\n  created_at TIMESTAMP\n) WITH (\n  format = 'ICEBERG',\n  partitioning = ARRAY['created_at'],\n  clustering = ARRAY['profile_id', 'user_id'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE linear.optimized.user_preferences (\n  preference_id INTEGER,\n  user_id INTEGER,\n  category VARCHAR(50),\n  setting_name VARCHAR(100),\n  setting_value VARCHAR(500),\n  updated_at TIMESTAMP\n) WITH (\n  format = 'ICEBERG',\n  partitioning = ARRAY['updated_at'],\n  clustering = ARRAY['preference_id', 'user_id'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE linear.optimized.user_activity_logs (\n  log_id INTEGER,\n  user_id INTEGER,\n  activity_type VARCHAR(50),\n  activity_data JSON,\n  timestamp TIMESTAMP,\n  ip_address VARCHAR(45)\n) WITH (\n  format = 'ICEBERG',\n  partitioning = ARRAY['timestamp'],\n  clustering = ARRAY['log_id', 'user_id', 'activity_type'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      }
+    ],
+    "migrations": [
+      {
+        "statement": "INSERT INTO linear.optimized.users SELECT user_id, username, email, registration_date, status FROM linear.public.users"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM linear.optimized.users"
+      },
+      {
+        "statement": "INSERT INTO linear.optimized.user_profiles SELECT profile_id, user_id, first_name, last_name, phone, address, created_at FROM linear.public.user_profiles"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM linear.optimized.user_profiles"
+      },
+      {
+        "statement": "INSERT INTO linear.optimized.user_preferences SELECT preference_id, user_id, category, setting_name, setting_value, updated_at FROM linear.public.user_preferences"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM linear.optimized.user_preferences"
+      },
+      {
+        "statement": "INSERT INTO linear.optimized.user_activity_logs SELECT log_id, user_id, activity_type, activity_data, timestamp, ip_address FROM linear.public.user_activity_logs"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM linear.optimized.user_activity_logs"
+      }
+    ],
+    "queries": [
+      {
+        "queryid": "linear-user-search",
+        "query": "SELECT u.user_id, u.username, u.email, up.first_name, up.last_name, u.registration_date FROM linear.optimized.users AS u LEFT JOIN linear.optimized.user_profiles AS up ON u.user_id = up.user_id WHERE u.status = 'active' AND u.registration_date >= '2023-01-01' ORDER BY u.registration_date DESC LIMIT 100"
+      },
+      {
+        "queryid": "linear-activity-analysis",
+        "query": "SELECT u.username, COUNT(ual.log_id) AS total_activities, COUNT(DISTINCT DATE(ual.timestamp)) AS active_days, MAX(ual.timestamp) AS last_activity FROM linear.optimized.users AS u LEFT JOIN linear.optimized.user_activity_logs AS ual ON u.user_id = ual.user_id WHERE u.status = 'active' GROUP BY u.user_id, u.username HAVING COUNT(ual.log_id) > 10 ORDER BY total_activities DESC LIMIT 50"
+      },
+      {
+        "queryid": "linear-preferences-report",
+        "query": "SELECT up.category, up.setting_name, COUNT(*) AS user_count, COUNT(DISTINCT up.user_id) AS unique_users FROM linear.optimized.user_preferences AS up JOIN linear.optimized.users AS u ON up.user_id = u.user_id WHERE u.status = 'active' GROUP BY up.category, up.setting_name ORDER BY user_count DESC"
+      }
+    ],
+    "quality_score": 70
+  },
+  "error": null
+}

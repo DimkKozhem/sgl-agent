@@ -1,0 +1,80 @@
+{
+  "task_id": "76c261fe-f6b2-4b1f-a81b-12da4e74e61e",
+  "timestamp": "2025-10-18T00:20:52.477773",
+  "input": {
+    "url": "jdbc:trino://localhost:8080?catalog=analytics",
+    "ddl": [
+      {
+        "statement": "CREATE TABLE analytics.public.orders (order_id INTEGER, customer_id INTEGER, product_id INTEGER, quantity INTEGER, price DECIMAL(10,2), order_date DATE, status VARCHAR(50))"
+      },
+      {
+        "statement": "CREATE TABLE analytics.public.customers (customer_id INTEGER, name VARCHAR(255), email VARCHAR(255), registration_date DATE, country VARCHAR(100))"
+      },
+      {
+        "statement": "CREATE TABLE analytics.public.products (product_id INTEGER, name VARCHAR(255), category VARCHAR(100), price DECIMAL(10,2), stock_quantity INTEGER)"
+      }
+    ],
+    "queries": [
+      {
+        "queryid": "complex-join-1",
+        "query": "SELECT c.name, c.country, COUNT(o.order_id) as total_orders, SUM(o.price * o.quantity) as total_spent FROM analytics.public.customers c LEFT JOIN analytics.public.orders o ON c.customer_id = o.customer_id WHERE c.registration_date >= '2023-01-01' GROUP BY c.customer_id, c.name, c.country HAVING COUNT(o.order_id) > 5 ORDER BY total_spent DESC LIMIT 10",
+        "runquantity": 50,
+        "executiontime": 15
+      },
+      {
+        "queryid": "analytics-query-2",
+        "query": "WITH monthly_sales AS (SELECT DATE_TRUNC('month', order_date) as month, SUM(price * quantity) as revenue, COUNT(*) as order_count FROM analytics.public.orders WHERE status = 'completed' GROUP BY DATE_TRUNC('month', order_date)), product_performance AS (SELECT p.category, SUM(o.price * o.quantity) as category_revenue, COUNT(DISTINCT o.customer_id) as unique_customers FROM analytics.public.products p JOIN analytics.public.orders o ON p.product_id = o.product_id WHERE o.status = 'completed' GROUP BY p.category) SELECT ms.month, ms.revenue, ms.order_count, pp.category, pp.category_revenue, pp.unique_customers FROM monthly_sales ms CROSS JOIN product_performance pp ORDER BY ms.month DESC, pp.category_revenue DESC",
+        "runquantity": 25,
+        "executiontime": 8
+      }
+    ]
+  },
+  "output": {
+    "ddl": [
+      {
+        "statement": "CREATE SCHEMA IF NOT EXISTS analytics.optimized"
+      },
+      {
+        "statement": "CREATE TABLE analytics.optimized.orders (\n  order_id INTEGER,\n  customer_id INTEGER,\n  product_id INTEGER,\n  quantity INTEGER,\n  price DECIMAL(10, 2),\n  order_date DATE,\n  status VARCHAR(50)\n) WITH (\n  format = 'ICEBERG',\n  partitioning = ARRAY['order_date'],\n  clustering = ARRAY['order_id', 'customer_id', 'product_id', 'status'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE analytics.optimized.customers (\n  customer_id INTEGER,\n  name VARCHAR(255),\n  email VARCHAR(255),\n  registration_date DATE,\n  country VARCHAR(100)\n) WITH (\n  format = 'ICEBERG',\n  partitioning = ARRAY['registration_date'],\n  clustering = ARRAY['customer_id'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE analytics.optimized.products (\n  product_id INTEGER,\n  name VARCHAR(255),\n  category VARCHAR(100),\n  price DECIMAL(10, 2),\n  stock_quantity INTEGER\n) WITH (\n  format = 'ICEBERG',\n  clustering = ARRAY['product_id'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      }
+    ],
+    "migrations": [
+      {
+        "statement": "INSERT INTO analytics.optimized.orders SELECT order_id, customer_id, product_id, quantity, price, order_date, status FROM analytics.public.orders"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM analytics.optimized.orders"
+      },
+      {
+        "statement": "INSERT INTO analytics.optimized.customers SELECT customer_id, name, email, registration_date, country FROM analytics.public.customers"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM analytics.optimized.customers"
+      },
+      {
+        "statement": "INSERT INTO analytics.optimized.products SELECT product_id, name, category, price, stock_quantity FROM analytics.public.products"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM analytics.optimized.products"
+      }
+    ],
+    "queries": [
+      {
+        "queryid": "complex-join-1",
+        "query": "SELECT c.name, c.country, COUNT(o.order_id) AS total_orders, SUM(o.price * o.quantity) AS total_spent FROM analytics.optimized.customers AS c LEFT JOIN analytics.optimized.orders AS o ON c.customer_id = o.customer_id WHERE c.registration_date >= '2023-01-01' GROUP BY c.customer_id, c.name, c.country HAVING COUNT(o.order_id) > 5 ORDER BY total_spent DESC LIMIT 10"
+      },
+      {
+        "queryid": "analytics-query-2",
+        "query": "WITH monthly_sales AS (SELECT DATE_TRUNC('MONTH', order_date) AS month, SUM(price * quantity) AS revenue, COUNT(*) AS order_count FROM analytics.optimized.orders WHERE status = 'completed' GROUP BY DATE_TRUNC('MONTH', order_date)), product_performance AS (SELECT p.category, SUM(o.price * o.quantity) AS category_revenue, COUNT(DISTINCT o.customer_id) AS unique_customers FROM analytics.optimized.products AS p JOIN analytics.optimized.orders AS o ON p.product_id = o.product_id WHERE o.status = 'completed' GROUP BY p.category) SELECT ms.month, ms.revenue, ms.order_count, pp.category, pp.category_revenue, pp.unique_customers FROM monthly_sales AS ms CROSS JOIN product_performance AS pp ORDER BY ms.month DESC, pp.category_revenue DESC"
+      }
+    ],
+    "quality_score": 80
+  },
+  "error": null
+}

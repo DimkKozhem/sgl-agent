@@ -577,10 +577,15 @@ Rules:
                 parsed = sqlglot.parse_one(ddl, dialect="trino")
                 columns = []
 
-                for col_def in parsed.find_all(sqlglot.exp.ColumnDef):
-                    col_name = col_def.this.name
-                    col_type = col_def.kind.sql(dialect="trino") if col_def.kind else "UNKNOWN"
-                    columns.append((col_name, col_type))
+                # Безопасное извлечение колонок
+                try:
+                    for col_def in parsed.find_all(sqlglot.exp.ColumnDef):
+                        col_name = col_def.this.name
+                        col_type = col_def.kind.sql(dialect="trino") if col_def.kind else "UNKNOWN"
+                        columns.append((col_name, col_type))
+                except (AttributeError, TypeError) as inner_e:
+                    logger.debug(f"Cannot extract columns via sqlglot: {inner_e}")
+                    raise  # Передаем во внешний except
 
                 if columns:
                     return columns
@@ -772,23 +777,26 @@ Rules:
         """Заменяет SELECT * на конкретные колонки."""
         modified = False
 
-        for select in parsed.find_all(sqlglot.exp.Select):
-            if len(select.expressions) == 1:
-                expr = select.expressions[0]
-                if isinstance(expr, sqlglot.exp.Star):
-                    from_clause = select.find(sqlglot.exp.From)
-                    if from_clause and from_clause.this:
-                        table_name = from_clause.this.name
+        try:
+            for select in parsed.find_all(sqlglot.exp.Select):
+                if len(select.expressions) == 1:
+                    expr = select.expressions[0]
+                    if isinstance(expr, sqlglot.exp.Star):
+                        from_clause = select.find(sqlglot.exp.From)
+                        if from_clause and from_clause.this:
+                            table_name = from_clause.this.name
 
-                        if table_name in table_metadata:
-                            columns = table_metadata[table_name]["columns"]
-                            if columns:
-                                select.expressions = [
-                                    sqlglot.exp.Column(this=col)
-                                    for col in columns
-                                ]
-                                modified = True
-                                logger.info(f"✅ Заменен SELECT * на {len(columns)} колонок для {table_name}")
+                            if table_name in table_metadata:
+                                columns = table_metadata[table_name]["columns"]
+                                if columns:
+                                    select.expressions = [
+                                        sqlglot.exp.Column(this=col)
+                                        for col in columns
+                                    ]
+                                    modified = True
+                                    logger.info(f"✅ Заменен SELECT * на {len(columns)} колонок для {table_name}")
+        except (AttributeError, TypeError) as e:
+            logger.debug(f"Cannot replace SELECT *: {e}")
 
         return modified
 
@@ -802,9 +810,15 @@ Rules:
 
     def _is_aggregation_sqlglot(self, parsed: sqlglot.Expression) -> bool:
         """Проверяет наличие агрегатных функций или GROUP BY."""
-        has_group = parsed.find(sqlglot.exp.Group) is not None
-        has_agg = any(parsed.find_all(sqlglot.exp.AggFunc))
-        return has_group or has_agg
+        try:
+            has_group = parsed.find(sqlglot.exp.Group) is not None
+            # Безопасная проверка агрегатных функций
+            agg_funcs = list(parsed.find_all(sqlglot.exp.AggFunc))
+            has_agg = len(agg_funcs) > 0
+            return has_group or has_agg
+        except (AttributeError, TypeError) as e:
+            logger.debug(f"Cannot check aggregation: {e}, assuming no aggregation")
+            return False
 
     def _check_partition_usage(
             self,
@@ -814,16 +828,19 @@ Rules:
         """Проверяет использование партиционных колонок в WHERE."""
         used = []
 
-        where = parsed.find(sqlglot.exp.Where)
-        if not where:
-            return used
+        try:
+            where = parsed.find(sqlglot.exp.Where)
+            if not where:
+                return used
 
-        where_columns = {col.name for col in where.find_all(sqlglot.exp.Column)}
+            where_columns = {col.name for col in where.find_all(sqlglot.exp.Column)}
 
-        for table, meta in table_metadata.items():
-            for part_col in meta["partition_columns"]:
-                if part_col in where_columns:
-                    used.append((table, part_col))
+            for table, meta in table_metadata.items():
+                for part_col in meta["partition_columns"]:
+                    if part_col in where_columns:
+                        used.append((table, part_col))
+        except (AttributeError, TypeError) as e:
+            logger.debug(f"Cannot check partition usage: {e}")
 
         return used
 
@@ -835,16 +852,19 @@ Rules:
         """Проверяет JOIN по кластерным колонкам."""
         used = []
 
-        for join in parsed.find_all(sqlglot.exp.Join):
-            if not join.on:
-                continue
+        try:
+            for join in parsed.find_all(sqlglot.exp.Join):
+                if not join.on:
+                    continue
 
-            join_columns = {col.name for col in join.on.find_all(sqlglot.exp.Column)}
+                join_columns = {col.name for col in join.on.find_all(sqlglot.exp.Column)}
 
-            for table, meta in table_metadata.items():
-                for cluster_col in meta["cluster_columns"]:
-                    if cluster_col in join_columns:
-                        used.append((table, cluster_col))
+                for table, meta in table_metadata.items():
+                    for cluster_col in meta["cluster_columns"]:
+                        if cluster_col in join_columns:
+                            used.append((table, cluster_col))
+        except (AttributeError, TypeError) as e:
+            logger.debug(f"Cannot check cluster joins: {e}")
 
         return used
 
@@ -868,11 +888,16 @@ Rules:
             try:
                 parsed = sqlglot.parse_one(query, dialect="trino")
 
-                for table in parsed.find_all(sqlglot.exp.Table):
-                    if table.catalog and table.db:
-                        if table.db.lower() != "optimized":
-                            table.set("db", sqlglot.exp.Identifier(this="optimized"))
-                            table.set("catalog", sqlglot.exp.Identifier(this=catalog_name))
+                # Безопасный обход таблиц
+                try:
+                    for table in parsed.find_all(sqlglot.exp.Table):
+                        if table.catalog and table.db:
+                            if table.db.lower() != "optimized":
+                                table.set("db", sqlglot.exp.Identifier(this="optimized"))
+                                table.set("catalog", sqlglot.exp.Identifier(this=catalog_name))
+                except (AttributeError, TypeError) as inner_e:
+                    logger.debug(f"Cannot iterate tables: {inner_e}, fallback to regex")
+                    raise  # Передаем во внешний except
 
                 return parsed.sql(dialect="trino")
             except Exception as e:

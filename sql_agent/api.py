@@ -5,13 +5,16 @@ REST API для SQL-agent.
 получения статуса выполнения и результатов анализа.
 """
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 import os
 import logging
+import json
 
 from .models import (
     OptimizationRequest,
@@ -38,6 +41,43 @@ app = FastAPI(
     description="REST API для анализа и оптимизации структуры базы данных",
     version="1.0.0"
 )
+
+
+# Обработчик ошибок валидации JSON (возвращает 400 вместо 422)
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """
+    Обработчик ошибок валидации Pydantic.
+    Возвращает 400 Bad Request вместо стандартного 422.
+    """
+    logger.warning(f"Ошибка валидации для {request.url.path}: {exc.errors()}")
+    return JSONResponse(
+        status_code=400,
+        content={
+            "error": "Bad Request",
+            "detail": "Невалидный JSON или неверная структура данных",
+            "validation_errors": exc.errors()
+        }
+    )
+
+
+# Обработчик ошибок синтаксиса JSON
+@app.exception_handler(json.JSONDecodeError)
+async def json_decode_exception_handler(request: Request, exc: json.JSONDecodeError):
+    """
+    Обработчик ошибок синтаксиса JSON.
+    Возвращает 400 Bad Request при невалидном синтаксисе JSON.
+    """
+    logger.warning(f"Ошибка синтаксиса JSON для {request.url.path}: {str(exc)}")
+    return JSONResponse(
+        status_code=400,
+        content={
+            "error": "Bad Request",
+            "detail": "Невалидный синтаксис JSON",
+            "message": str(exc)
+        }
+    )
+
 
 # Монтируем статическую директорию
 static_dir = os.path.join(os.path.dirname(__file__), "..", "static")

@@ -1,0 +1,68 @@
+{
+  "task_id": "5deb309d-d36c-4267-88ed-eed1739cbac7",
+  "timestamp": "2025-10-18T14:00:18.927960",
+  "input": {
+    "url": "jdbc:trino://localhost:8080?catalog=edge",
+    "ddl": [
+      {
+        "statement": "CREATE TABLE edge.public.special_chars (id INTEGER, name VARCHAR(255), description TEXT, json_data JSON, created_at TIMESTAMP WITH TIME ZONE, metadata MAP(VARCHAR, VARCHAR))"
+      },
+      {
+        "statement": "CREATE TABLE edge.public.nullable_table (id INTEGER, nullable_field VARCHAR(255), default_value INTEGER DEFAULT 0, check_constraint INTEGER CHECK (check_constraint > 0))"
+      }
+    ],
+    "queries": [
+      {
+        "queryid": "special-chars-query",
+        "query": "SELECT id, name, description, json_data, created_at FROM edge.public.special_chars WHERE name LIKE '%тест%' OR description LIKE '%special%' ORDER BY created_at DESC",
+        "runquantity": 5,
+        "executiontime": 2
+      },
+      {
+        "queryid": "nullable-query",
+        "query": "SELECT id, COALESCE(nullable_field, 'default') as field_value, default_value, check_constraint FROM edge.public.nullable_table WHERE nullable_field IS NOT NULL OR default_value > 0",
+        "runquantity": 3,
+        "executiontime": 1
+      }
+    ]
+  },
+  "output": {
+    "ddl": [
+      {
+        "statement": "CREATE SCHEMA IF NOT EXISTS edge.optimized"
+      },
+      {
+        "statement": "CREATE TABLE edge.optimized.special_chars (\n  id INTEGER,\n  name VARCHAR(255),\n  description VARCHAR,\n  json_data JSON,\n  created_at TIMESTAMP WITH TIME ZONE,\n  metadata MAP(VARCHAR, VARCHAR)\n) WITH (\n  format = 'ICEBERG',\n  partitioning = ARRAY['created_at'],\n  clustering = ARRAY['id'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE edge.optimized.nullable_table (\n  id INTEGER,\n  nullable_field VARCHAR(255),\n  default_value INTEGER,\n  check_constraint INTEGER\n) WITH (\n  format = 'ICEBERG',\n  clustering = ARRAY['id'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      }
+    ],
+    "migrations": [
+      {
+        "statement": "INSERT INTO edge.optimized.special_chars SELECT id, name, description, json_data, created_at, metadata FROM edge.public.special_chars"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM edge.optimized.special_chars"
+      },
+      {
+        "statement": "INSERT INTO edge.optimized.nullable_table SELECT id, nullable_field, default_value, check_constraint FROM edge.public.nullable_table"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM edge.optimized.nullable_table"
+      }
+    ],
+    "queries": [
+      {
+        "queryid": "special-chars-query",
+        "query": "SELECT id, name, description, json_data, created_at FROM edge.optimized.special_chars WHERE name LIKE '%тест%' OR description LIKE '%special%' ORDER BY created_at DESC LIMIT 10000"
+      },
+      {
+        "queryid": "nullable-query",
+        "query": "SELECT id, COALESCE(nullable_field, 'default') AS field_value, default_value, check_constraint FROM edge.optimized.nullable_table WHERE NOT nullable_field IS NULL OR default_value > 0 LIMIT 10000"
+      }
+    ],
+    "quality_score": 61
+  },
+  "error": null
+}

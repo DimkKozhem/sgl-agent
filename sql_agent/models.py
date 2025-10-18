@@ -96,15 +96,13 @@ class TaskResultResponse(BaseModel):
     ddl: List[Dict[str, str]]
     migrations: List[Dict[str, str]]
     queries: List[Dict[str, Any]]
-    quality_score: Optional[int] = None
 
     @classmethod
     def from_optimization_result(cls, result: OptimizationResult):
         return cls(
             ddl=result.ddl,
             migrations=result.migrations,
-            queries=result.queries,
-            quality_score=result.quality_score
+            queries=result.queries
         )
 
 

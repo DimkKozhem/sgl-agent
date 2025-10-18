@@ -1,0 +1,46 @@
+{
+  "task_id": "5ca2f80b-aee2-4b36-b6f0-14b07f97bfa4",
+  "timestamp": "2025-10-18T00:50:11.568741",
+  "input": {
+    "url": "jdbc:trino://localhost:8080?catalog=test",
+    "ddl": [
+      {
+        "statement": "CREATE TABLE test.public.users (id INTEGER, name VARCHAR(255), email VARCHAR(255), created_at TIMESTAMP)"
+      }
+    ],
+    "queries": [
+      {
+        "queryid": "simple-select-1",
+        "query": "SELECT * FROM test.public.users WHERE id = 1",
+        "runquantity": 10,
+        "executiontime": 1
+      }
+    ]
+  },
+  "output": {
+    "ddl": [
+      {
+        "statement": "CREATE SCHEMA IF NOT EXISTS test.optimized"
+      },
+      {
+        "statement": "CREATE TABLE test.optimized.users (\n  id INTEGER,\n  name VARCHAR(255),\n  email VARCHAR(255),\n  created_at TIMESTAMP\n) WITH (\n  format = 'ICEBERG',\n  partitioning = ARRAY['created_at'],\n  clustering = ARRAY['id'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      }
+    ],
+    "migrations": [
+      {
+        "statement": "INSERT INTO test.optimized.users SELECT id, name, email, created_at FROM test.public.users"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM test.optimized.users"
+      }
+    ],
+    "queries": [
+      {
+        "queryid": "simple-select-1",
+        "query": "SELECT * FROM test.optimized.users WHERE id = 1\nLIMIT 10000;"
+      }
+    ],
+    "quality_score": 76
+  },
+  "error": null
+}

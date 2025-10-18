@@ -1,0 +1,134 @@
+{
+  "task_id": "67d96035-08b7-4cc1-8454-31778a2960bb",
+  "timestamp": "2025-10-18T00:59:29.203572",
+  "input": {
+    "url": "jdbc:trino://localhost:8080?catalog=network",
+    "ddl": [
+      {
+        "statement": "CREATE TABLE network.public.nodes (node_id VARCHAR(50), node_type VARCHAR(50), node_name VARCHAR(255), properties JSON, created_at TIMESTAMP, updated_at TIMESTAMP, status VARCHAR(20))"
+      },
+      {
+        "statement": "CREATE TABLE network.public.edges (edge_id VARCHAR(50), source_node_id VARCHAR(50), target_node_id VARCHAR(50), edge_type VARCHAR(50), weight DECIMAL(10,4), properties JSON, created_at TIMESTAMP, updated_at TIMESTAMP, status VARCHAR(20))"
+      },
+      {
+        "statement": "CREATE TABLE network.public.node_attributes (attribute_id VARCHAR(50), node_id VARCHAR(50), attribute_name VARCHAR(100), attribute_value VARCHAR(500), data_type VARCHAR(50), created_at TIMESTAMP, updated_at TIMESTAMP)"
+      },
+      {
+        "statement": "CREATE TABLE network.public.edge_metrics (metric_id VARCHAR(50), edge_id VARCHAR(50), metric_name VARCHAR(100), metric_value DECIMAL(15,6), metric_timestamp TIMESTAMP, metadata JSON)"
+      },
+      {
+        "statement": "CREATE TABLE network.public.network_snapshots (snapshot_id VARCHAR(50), snapshot_name VARCHAR(255), snapshot_timestamp TIMESTAMP, total_nodes INTEGER, total_edges INTEGER, network_density DECIMAL(8,6), average_clustering DECIMAL(8,6), metadata JSON)"
+      }
+    ],
+    "queries": [
+      {
+        "queryid": "network-centrality-analysis",
+        "query": "SELECT n.node_id, n.node_name, n.node_type, COUNT(e1.edge_id) as out_degree, COUNT(e2.edge_id) as in_degree, (COUNT(e1.edge_id) + COUNT(e2.edge_id)) as total_degree, AVG(COALESCE(e1.weight, 0)) as avg_out_weight, AVG(COALESCE(e2.weight, 0)) as avg_in_weight FROM network.public.nodes n LEFT JOIN network.public.edges e1 ON n.node_id = e1.source_node_id AND e1.status = 'active' LEFT JOIN network.public.edges e2 ON n.node_id = e2.target_node_id AND e2.status = 'active' WHERE n.status = 'active' GROUP BY n.node_id, n.node_name, n.node_type ORDER BY total_degree DESC LIMIT 20",
+        "runquantity": 120,
+        "executiontime": 22
+      },
+      {
+        "queryid": "network-path-analysis",
+        "query": "WITH RECURSIVE path_search AS (SELECT source_node_id as start_node, target_node_id as end_node, edge_id, 1 as path_length, ARRAY[source_node_id, target_node_id] as path_nodes FROM network.public.edges WHERE status = 'active' AND edge_type = 'connection' UNION ALL SELECT ps.start_node, e.target_node_id, e.edge_id, ps.path_length + 1, ps.path_nodes || e.target_node_id FROM path_search ps JOIN network.public.edges e ON ps.end_node = e.source_node_id WHERE e.status = 'active' AND e.edge_type = 'connection' AND ps.path_length < 3 AND NOT e.target_node_id = ANY(ps.path_nodes)) SELECT start_node, end_node, MIN(path_length) as shortest_path_length, COUNT(*) as path_count FROM path_search GROUP BY start_node, end_node HAVING COUNT(*) > 1 ORDER BY path_count DESC, shortest_path_length ASC LIMIT 15",
+        "runquantity": 45,
+        "executiontime": 35
+      },
+      {
+        "queryid": "network-community-detection",
+        "query": "SELECT n.node_type, COUNT(DISTINCT n.node_id) as node_count, COUNT(DISTINCT e.edge_id) as edge_count, AVG(em.metric_value) as avg_metric_value, STDDEV(em.metric_value) as metric_stddev FROM network.public.nodes n LEFT JOIN network.public.edges e ON (n.node_id = e.source_node_id OR n.node_id = e.target_node_id) AND e.status = 'active' LEFT JOIN network.public.edge_metrics em ON e.edge_id = em.edge_id WHERE n.status = 'active' GROUP BY n.node_type ORDER BY node_count DESC",
+        "runquantity": 35,
+        "executiontime": 18
+      },
+      {
+        "queryid": "network-temporal-analysis",
+        "query": "SELECT DATE_TRUNC('month', ns.snapshot_timestamp) as month, AVG(ns.total_nodes) as avg_nodes, AVG(ns.total_edges) as avg_edges, AVG(ns.network_density) as avg_density, AVG(ns.average_clustering) as avg_clustering, COUNT(*) as snapshot_count FROM network.public.network_snapshots ns WHERE ns.snapshot_timestamp >= '2023-01-01' GROUP BY DATE_TRUNC('month', ns.snapshot_timestamp) ORDER BY month",
+        "runquantity": 25,
+        "executiontime": 8
+      },
+      {
+        "queryid": "network-attribute-analysis",
+        "query": "SELECT na.attribute_name, na.data_type, COUNT(DISTINCT na.node_id) as nodes_with_attribute, COUNT(*) as total_attributes, AVG(CASE WHEN na.data_type = 'numeric' THEN CAST(na.attribute_value AS DECIMAL) ELSE NULL END) as avg_numeric_value, COUNT(DISTINCT na.attribute_value) as unique_values FROM network.public.node_attributes na JOIN network.public.nodes n ON na.node_id = n.node_id WHERE n.status = 'active' GROUP BY na.attribute_name, na.data_type ORDER BY nodes_with_attribute DESC LIMIT 10",
+        "runquantity": 30,
+        "executiontime": 12
+      }
+    ]
+  },
+  "output": {
+    "ddl": [
+      {
+        "statement": "CREATE SCHEMA IF NOT EXISTS network.optimized"
+      },
+      {
+        "statement": "CREATE TABLE network.optimized.nodes (\n  node_id VARCHAR(50),\n  node_type VARCHAR(50),\n  node_name VARCHAR(255),\n  properties JSON,\n  created_at TIMESTAMP,\n  updated_at TIMESTAMP,\n  status VARCHAR(20)\n) WITH (\n  format = 'ICEBERG',\n  partitioning = ARRAY['created_at', 'updated_at'],\n  clustering = ARRAY['node_id', 'node_type', 'status'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE network.optimized.edges (\n  edge_id VARCHAR(50),\n  source_node_id VARCHAR(50),\n  target_node_id VARCHAR(50),\n  edge_type VARCHAR(50),\n  weight DECIMAL(10, 4),\n  properties JSON,\n  created_at TIMESTAMP,\n  updated_at TIMESTAMP,\n  status VARCHAR(20)\n) WITH (\n  format = 'ICEBERG',\n  partitioning = ARRAY['created_at', 'updated_at'],\n  clustering = ARRAY['edge_id', 'source_node_id', 'target_node_id', 'edge_type'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE network.optimized.node_attributes (\n  attribute_id VARCHAR(50),\n  node_id VARCHAR(50),\n  attribute_name VARCHAR(100),\n  attribute_value VARCHAR(500),\n  data_type VARCHAR(50),\n  created_at TIMESTAMP,\n  updated_at TIMESTAMP\n) WITH (\n  format = 'ICEBERG',\n  partitioning = ARRAY['created_at', 'updated_at'],\n  clustering = ARRAY['attribute_id', 'node_id', 'data_type'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE network.optimized.edge_metrics (\n  metric_id VARCHAR(50),\n  edge_id VARCHAR(50),\n  metric_name VARCHAR(100),\n  metric_value DECIMAL(15, 6),\n  metric_timestamp TIMESTAMP,\n  metadata JSON\n) WITH (\n  format = 'ICEBERG',\n  partitioning = ARRAY['metric_timestamp'],\n  clustering = ARRAY['metric_id', 'edge_id'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE network.optimized.network_snapshots (\n  snapshot_id VARCHAR(50),\n  snapshot_name VARCHAR(255),\n  snapshot_timestamp TIMESTAMP,\n  total_nodes INTEGER,\n  total_edges INTEGER,\n  network_density DECIMAL(8, 6),\n  average_clustering DECIMAL(8, 6),\n  metadata JSON\n) WITH (\n  format = 'ICEBERG',\n  partitioning = ARRAY['snapshot_timestamp'],\n  clustering = ARRAY['snapshot_id'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      }
+    ],
+    "migrations": [
+      {
+        "statement": "INSERT INTO network.optimized.nodes SELECT node_id, node_type, node_name, properties, created_at, updated_at, status FROM network.public.nodes"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM network.optimized.nodes"
+      },
+      {
+        "statement": "INSERT INTO network.optimized.edges SELECT edge_id, source_node_id, target_node_id, edge_type, weight, properties, created_at, updated_at, status FROM network.public.edges"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM network.optimized.edges"
+      },
+      {
+        "statement": "INSERT INTO network.optimized.node_attributes SELECT attribute_id, node_id, attribute_name, attribute_value, data_type, created_at, updated_at FROM network.public.node_attributes"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM network.optimized.node_attributes"
+      },
+      {
+        "statement": "INSERT INTO network.optimized.edge_metrics SELECT metric_id, edge_id, metric_name, metric_value, metric_timestamp, metadata FROM network.public.edge_metrics"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM network.optimized.edge_metrics"
+      },
+      {
+        "statement": "INSERT INTO network.optimized.network_snapshots SELECT snapshot_id, snapshot_name, snapshot_timestamp, total_nodes, total_edges, network_density, average_clustering, metadata FROM network.public.network_snapshots"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM network.optimized.network_snapshots"
+      }
+    ],
+    "queries": [
+      {
+        "queryid": "network-community-detection",
+        "query": "SELECT n.node_type, COUNT(DISTINCT n.node_id) AS node_count, COUNT(DISTINCT e.edge_id) AS edge_count, AVG(em.metric_value) AS avg_metric_value, STDDEV(em.metric_value) AS metric_stddev FROM network.optimized.nodes AS n LEFT JOIN network.optimized.edges AS e ON (n.node_id = e.source_node_id OR n.node_id = e.target_node_id) AND e.status = 'active' LEFT JOIN network.optimized.edge_metrics AS em ON e.edge_id = em.edge_id WHERE n.status = 'active' GROUP BY n.node_type ORDER BY node_count DESC"
+      },
+      {
+        "queryid": "network-attribute-analysis",
+        "query": "SELECT na.attribute_name, na.data_type, COUNT(DISTINCT na.node_id) AS nodes_with_attribute, COUNT(*) AS total_attributes, AVG(CASE WHEN na.data_type = 'numeric' THEN CAST(na.attribute_value AS DECIMAL) ELSE NULL END) AS avg_numeric_value, COUNT(DISTINCT na.attribute_value) AS unique_values FROM network.optimized.node_attributes AS na JOIN network.optimized.nodes AS n ON na.node_id = n.node_id WHERE n.status = 'active' GROUP BY na.attribute_name, na.data_type ORDER BY nodes_with_attribute DESC LIMIT 10"
+      },
+      {
+        "queryid": "network-centrality-analysis",
+        "query": "SELECT n.node_id, n.node_name, n.node_type, COUNT(e1.edge_id) AS out_degree, COUNT(e2.edge_id) AS in_degree, (COUNT(e1.edge_id) + COUNT(e2.edge_id)) AS total_degree, AVG(COALESCE(e1.weight, 0)) AS avg_out_weight, AVG(COALESCE(e2.weight, 0)) AS avg_in_weight FROM network.optimized.nodes AS n LEFT JOIN network.optimized.edges AS e1 ON n.node_id = e1.source_node_id AND e1.status = 'active' LEFT JOIN network.optimized.edges AS e2 ON n.node_id = e2.target_node_id AND e2.status = 'active' WHERE n.status = 'active' GROUP BY n.node_id, n.node_name, n.node_type ORDER BY total_degree DESC LIMIT 20"
+      },
+      {
+        "queryid": "network-path-analysis",
+        "query": "WITH RECURSIVE path_search(start_node, end_node, edge_id, path_length, path_nodes) AS (SELECT source_node_id AS start_node, target_node_id AS end_node, edge_id, 1 AS path_length, ARRAY[source_node_id, target_node_id] AS path_nodes FROM network.optimized.edges WHERE status = 'active' AND edge_type = 'connection' UNION ALL SELECT ps.start_node, e.target_node_id, e.edge_id, ps.path_length + 1, ps.path_nodes || e.target_node_id FROM path_search AS ps JOIN network.optimized.edges AS e ON ps.end_node = e.source_node_id WHERE e.status = 'active' AND e.edge_type = 'connection' AND ps.path_length < 3 AND NOT e.target_node_id = ANY(ps.path_nodes)) SELECT start_node, end_node, MIN(path_length) AS shortest_path_length, COUNT(*) AS path_count FROM path_search GROUP BY start_node, end_node HAVING COUNT(*) > 1 ORDER BY path_count DESC, shortest_path_length ASC LIMIT 15"
+      },
+      {
+        "queryid": "network-temporal-analysis",
+        "query": "SELECT DATE_TRUNC('MONTH', ns.snapshot_timestamp) AS month, AVG(ns.total_nodes) AS avg_nodes, AVG(ns.total_edges) AS avg_edges, AVG(ns.network_density) AS avg_density, AVG(ns.average_clustering) AS avg_clustering, COUNT(*) AS snapshot_count FROM network.optimized.network_snapshots AS ns WHERE ns.snapshot_timestamp >= '2023-01-01' GROUP BY DATE_TRUNC('MONTH', ns.snapshot_timestamp) ORDER BY month"
+      }
+    ],
+    "quality_score": 83
+  },
+  "error": null
+}

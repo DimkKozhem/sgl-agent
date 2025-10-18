@@ -23,7 +23,7 @@ class SimpleTaskManager:
     с настраиваемым таймаутом и интеграцией LLM анализа.
     """
 
-    def __init__(self, max_workers: int = 4, task_timeout_minutes: int = 20, use_llm: bool = True):
+    def __init__(self, max_workers: int = 30, task_timeout_minutes: int = 20, use_llm: bool = True):
         """
         Инициализация менеджера задач.
 
