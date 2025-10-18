@@ -67,8 +67,18 @@ class SimpleTaskManager:
                 logger.warning(f"Не удалось инициализировать LLM анализатор: {e}")
                 self.use_llm = False
         
-        # Запускаем фоновую задачу очистки
-        asyncio.create_task(self._periodic_cleanup())
+        # Флаг для отслеживания запуска cleanup
+        self._cleanup_task_started = False
+    
+    def start_cleanup_task(self):
+        """
+        Запуск фоновой задачи очистки.
+        Должен вызываться после запуска event loop (например, в startup event).
+        """
+        if not self._cleanup_task_started:
+            asyncio.create_task(self._periodic_cleanup())
+            self._cleanup_task_started = True
+            logger.info("🧹 Фоновая задача автоочистки запущена (каждый час)")
 
     def create_task(self, request: OptimizationRequest) -> str:
         """

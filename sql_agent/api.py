@@ -311,6 +311,9 @@ async def get_metrics():
 async def startup_event():
     """Инициализация при запуске"""
     logger.info("SQL-agent запущен")
+    
+    # Запускаем фоновую задачу автоочистки
+    task_manager.start_cleanup_task()
 
 
 @app.on_event("shutdown")
