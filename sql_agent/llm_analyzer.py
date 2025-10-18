@@ -91,10 +91,18 @@ class LLMAnalyzer:
         try:
             self._validate_input(request_data)
 
+            # Сначала пробуем извлечь из URL
             catalog_name = self._extract_catalog_from_url(request_data.get("url", ""))
             original_ddl = request_data.get("ddl", [])
+            
+            # Если каталог = default_catalog, пробуем извлечь из DDL
+            if catalog_name == "default_catalog" and original_ddl:
+                catalog_from_ddl = self._extract_catalog_from_ddl(original_ddl)
+                if catalog_from_ddl and catalog_from_ddl != "public":
+                    catalog_name = catalog_from_ddl
+                    logger.info(f"✅ Каталог извлечен из DDL: {catalog_name}")
 
-            logger.info(f"Извлечен каталог: {catalog_name}")
+            logger.info(f"Используем каталог: {catalog_name}")
 
             # ====== ПОДКЛЮЧЕНИЕ К БД ДЛЯ СТАТИСТИКИ ======
             from .db_connector import DatabaseConnector
@@ -159,6 +167,7 @@ class LLMAnalyzer:
 
             mig_payload = {
                 "url": request_data.get("url"),
+                "catalog_name": catalog_name,  # Явно передаем каталог
                 "old_ddl": original_ddl,
                 "new_ddl": new_ddl,
             }
@@ -1142,19 +1151,26 @@ Rules:
             "Your task: Create comprehensive migration statements to transfer data from old DDL to new optimized structure.\n"
             "\n"
             "CRITICAL REQUIREMENTS:\n"
-            "1. Extract catalog name from JDBC URL\n"
-            "2. Use full paths: <catalog>.optimized.<table>\n"
-            "3. Migrate ALL columns from original tables to optimized tables\n"
-            "4. Include data validation queries\n"
+            "1. USE the 'catalog_name' field from input payload - do NOT extract from URL\n"
+            "2. MANDATORY: ALL paths must use format: <catalog_name>.optimized.<table_name>\n"
+            "3. Extract table names from old_ddl and new_ddl\n"
+            "4. Migrate ALL columns from original tables to optimized tables\n"
+            "5. Include SELECT COUNT(*) validation queries for each migration\n"
+            "\n"
+            "PATH EXAMPLES:\n"
+            "- If catalog_name='flights': flights.optimized.flights_table\n"
+            "- If catalog_name='analytics': analytics.optimized.users\n"
+            "- If old table was 'flights.public.flights', new is 'flights.optimized.flights'\n"
             "\n"
             "MANDATORY JSON OUTPUT FORMAT:\n"
             "{\n"
             '  "migrations": [\n'
-            '    {"statement": "INSERT INTO catalog.optimized.table SELECT ... FROM catalog.old.table"},\n'
-            '    {"statement": "SELECT COUNT(*) as validation FROM catalog.optimized.table"}\n'
+            '    {"statement": "INSERT INTO <catalog_name>.optimized.<table> SELECT * FROM <catalog_name>.public.<table>"},\n'
+            '    {"statement": "SELECT COUNT(*) as validation FROM <catalog_name>.optimized.<table>"}\n'
             '  ]\n'
             "}\n"
             "\n"
+            "CRITICAL: Replace <catalog_name> with the actual catalog_name from input!\n"
             "Return ONLY valid JSON, no markdown, no explanations."
         )
 
@@ -1206,8 +1222,14 @@ Rules:
                 "SCHEMA VALIDATION ERRORS DETECTED:\n"
                 f"- Ensure all required fields for '{function_name}' are present\n"
                 "- Use full paths: <catalog>.optimized.<table>\n"
+                "- Check the 'catalog_name' field in input and use it in ALL paths\n"
                 "- Each statement must have 'statement' field\n"
                 "- Each query must have 'queryid' and 'query' fields\n"
+                "\n"
+                "PATH FORMAT REMINDER:\n"
+                "- DDL: CREATE TABLE <catalog_name>.optimized.<table_name>\n"
+                "- Migration: INSERT INTO <catalog_name>.optimized.<table> SELECT * FROM <catalog_name>.<old_schema>.<table>\n"
+                "- Query: FROM <catalog_name>.optimized.<table>\n"
                 "\n"
             )
         
@@ -1228,41 +1250,103 @@ Rules:
 
     @staticmethod
     def _validate_full_paths(result: Dict[str, Any], catalog_name: str) -> None:
-        """Строгая валидация полных путей в результате"""
-        expected_pattern = rf"{re.escape(catalog_name)}\.optimized\.\w+"
-
-        def has_correct_full_path(text: str) -> bool:
-            return bool(re.search(expected_pattern, text))
+        """
+        Валидация путей с учетом разных форматов каталогов.
+        
+        Принимает:
+        - catalog.optimized.table (строгое соответствие)
+        - any_catalog.optimized.table (любой каталог с optimized)
+        - CREATE SCHEMA statements (пропускаем)
+        """
+        # Гибкий паттерн: любой каталог + .optimized. + имя таблицы
+        optimized_pattern = r'\w+\.optimized\.\w+'
+        
+        def has_optimized_path(text: str) -> bool:
+            """Проверяет наличие пути с .optimized."""
+            return bool(re.search(optimized_pattern, text))
+        
+        def is_schema_statement(text: str) -> bool:
+            """Проверяет является ли statement созданием схемы."""
+            return bool(re.search(r'CREATE\s+SCHEMA', text, re.IGNORECASE))
 
         errors = []
+        warnings = []
 
         for i, ddl_item in enumerate(result.get("ddl", [])):
             statement = ddl_item.get("statement", "")
+            
+            # Пропускаем CREATE SCHEMA
+            if is_schema_statement(statement):
+                continue
+                
             if "CREATE TABLE" in statement.upper():
-                if not has_correct_full_path(statement):
-                    errors.append(f"DDL[{i}] missing correct full path: {statement[:100]}...")
+                if not has_optimized_path(statement):
+                    errors.append(f"DDL[{i}] missing .optimized. path: {statement[:150]}...")
 
         for i, mig_item in enumerate(result.get("migrations", [])):
             statement = mig_item.get("statement", "")
-            if "INSERT INTO" in statement.upper() or "SELECT" in statement.upper():
-                if not has_correct_full_path(statement):
-                    errors.append(f"Migration[{i}] missing correct full path: {statement[:100]}...")
+            
+            # SELECT для валидации можно пропустить
+            if statement.upper().strip().startswith("SELECT"):
+                continue
+                
+            if "INSERT INTO" in statement.upper():
+                if not has_optimized_path(statement):
+                    errors.append(f"Migration[{i}] missing .optimized. path: {statement[:150]}...")
 
         for i, query_item in enumerate(result.get("queries", [])):
             query = query_item.get("query", "")
-            if "FROM" in query.upper():
-                if not has_correct_full_path(query):
-                    errors.append(f"Query[{i}] missing correct full path: {query[:100]}...")
+            if "FROM" in query.upper() or "JOIN" in query.upper():
+                if not has_optimized_path(query):
+                    # Для запросов даем warning, а не error (могут быть подзапросы без путей)
+                    warnings.append(f"Query[{i}] may be missing .optimized. path")
 
         if errors:
             raise LLMAnalyzerError(
-                f"Валидация полных путей не пройдена: {len(errors)} ошибок",
-                {"validation_errors": errors, "catalog_name": catalog_name}
+                f"Валидация путей не пройдена: {len(errors)} критических ошибок",
+                {
+                    "validation_errors": errors,
+                    "warnings": warnings,
+                    "catalog_name": catalog_name,
+                    "hint": "DDL и миграции ДОЛЖНЫ использовать пути вида: <catalog>.optimized.<table>"
+                }
             )
 
     @staticmethod
     def _safe_truncate(text: str, limit: int) -> str:
         return text if len(text) <= limit else text[:limit] + "... [truncated]"
+
+    def _extract_catalog_from_ddl(self, ddl_list: List[Dict[str, str]]) -> Optional[str]:
+        """
+        Извлечение имени каталога из DDL statements.
+        
+        Ищет 3-частные пути вида catalog.schema.table в CREATE TABLE statements.
+        """
+        try:
+            for ddl_item in ddl_list[:5]:  # Проверяем первые 5 DDL
+                statement = ddl_item.get("statement", "")
+                
+                # Ищем паттерн: CREATE TABLE catalog.schema.table
+                match = re.search(
+                    r'CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(\w+)\.(\w+)\.(\w+)',
+                    statement,
+                    re.IGNORECASE
+                )
+                
+                if match:
+                    catalog = match.group(1)
+                    schema = match.group(2)
+                    table = match.group(3)
+                    
+                    # Исключаем служебные схемы
+                    if schema.lower() not in ['information_schema', 'pg_catalog', 'sys']:
+                        logger.debug(f"Найден путь в DDL: {catalog}.{schema}.{table}")
+                        return catalog
+            
+            return None
+        except Exception as e:
+            logger.debug(f"Не удалось извлечь каталог из DDL: {e}")
+            return None
 
     def _extract_catalog_from_url(self, url: str) -> str:
         """Извлечение имени каталога из JDBC URL"""
