@@ -724,6 +724,21 @@ Rules:
             return [item.strip().strip("'\"") for item in items]
         return []
 
+    def _clean_sql_for_parsing(self, sql: str) -> str:
+        """
+        Очистка SQL от комментариев перед парсингом sqlglot.
+        
+        Удаляет однострочные (--) и многострочные (/* */) комментарии,
+        которые могут вызвать проблемы при парсинге.
+        """
+        # Удаляем однострочные комментарии --
+        sql = re.sub(r'--[^\n]*', '', sql)
+        
+        # Удаляем многострочные комментарии /* */
+        sql = re.sub(r'/\*.*?\*/', '', sql, flags=re.DOTALL)
+        
+        return sql.strip()
+
     def _apply_real_optimizations(
             self,
             query: str,
@@ -739,7 +754,9 @@ Rules:
             return self._apply_simple_optimizations(query)
 
         try:
-            parsed = sqlglot.parse_one(optimized, dialect="trino")
+            # Очищаем SQL от комментариев перед парсингом
+            clean_query = self._clean_sql_for_parsing(optimized)
+            parsed = sqlglot.parse_one(clean_query, dialect="trino")
 
             modified_star = self._replace_select_star_sqlglot(parsed, table_metadata, catalog_name)
             if modified_star:
@@ -919,41 +936,55 @@ Rules:
             function_schema: Dict[str, Any],
             system_prompt: str,
             user_input: str,
+            max_attempts: int = 3
     ) -> Dict[str, Any]:
-        """Две попытки: базовая + repair."""
-        ok1, obj1, raw1, errs1 = self._call_llm_function(
-            function_name=function_name,
-            function_schema=function_schema,
-            system_prompt=system_prompt,
-            user_input=user_input,
-            repair_prompt=None,
-        )
-        if ok1:
-            return obj1
+        """
+        Вызов LLM с несколькими попытками и repair.
+        
+        Args:
+            max_attempts: Максимальное количество попыток (по умолчанию 3)
+        """
+        all_errors = []
+        
+        for attempt in range(1, max_attempts + 1):
+            # Для первой попытки repair_prompt = None
+            # Для последующих - используем ошибки предыдущей попытки
+            repair_prompt = None
+            if attempt > 1:
+                prev_errors = all_errors[-1]["errors"]
+                prev_raw = all_errors[-1].get("raw_output", "")
+                repair_prompt = self._build_repair_prompt(prev_errors, prev_raw, function_name=function_name)
+                logger.warning(f"{function_name}: попытка {attempt}/{max_attempts} (с repair)")
+            
+            ok, obj, raw, errs = self._call_llm_function(
+                function_name=function_name,
+                function_schema=function_schema,
+                system_prompt=system_prompt,
+                user_input=user_input,
+                repair_prompt=repair_prompt,
+            )
+            
+            # Сохраняем результат попытки
+            all_errors.append({
+                "attempt": attempt,
+                "errors": errs,
+                "raw_output": self._safe_truncate(raw or "", 4000)
+            })
+            
+            if ok:
+                if attempt > 1:
+                    logger.info(f"✅ {function_name}: успешно на попытке {attempt}/{max_attempts}")
+                return obj
 
-        repair = self._build_repair_prompt(errs1, raw1, function_name=function_name)
-        logger.warning(f"{function_name}: первая попытка не удалась. Repair-попытка 2/2.")
-        ok2, obj2, raw2, errs2 = self._call_llm_function(
-            function_name=function_name,
-            function_schema=function_schema,
-            system_prompt=system_prompt,
-            user_input=user_input,
-            repair_prompt=repair,
-        )
-        if ok2:
-            return obj2
-
+        # Все попытки провалились
         error_details = {
             "function": function_name,
             "model": self.analysis_model,
-            "attempts": [
-                {"attempt": 1, "errors": errs1, "raw_output_snippet": self._safe_truncate(raw1 or "", 4000)},
-                {"attempt": 2, "errors": errs2, "raw_output_snippet": self._safe_truncate(raw2 or "", 4000)},
-            ],
+            "attempts": all_errors,
         }
 
         raise LLMAnalyzerError(
-            f"Модель не вернула валидный JSON для '{function_name}' после 2 попыток",
+            f"Модель не вернула валидный JSON для '{function_name}' после {max_attempts} попыток",
             error_details,
         )
 
@@ -1018,10 +1049,23 @@ Rules:
             return False, None, None, errors
 
     def _extract_json_from_response(self, content: str) -> Optional[str]:
-        """Извлекает JSON из ответа с балансировкой скобок."""
+        """
+        Извлекает JSON из ответа с улучшенной очисткой.
+        
+        Поддерживает различные форматы ответов LLM:
+        - Чистый JSON
+        - JSON в markdown блоках ```json
+        - JSON с текстом до/после
+        - JSON с trailing commas
+        """
+        # Удаляем markdown блоки
         cleaned = re.sub(r'```json\s*', '', content)
+        cleaned = re.sub(r'```javascript\s*', '', cleaned)
         cleaned = re.sub(r'\s*```\s*', '', cleaned)
         cleaned = re.sub(r'```\s*', '', cleaned).strip()
+        
+        # Удаляем возможный текст перед JSON
+        cleaned = re.sub(r'^[^{]*', '', cleaned)
 
         start = cleaned.find('{')
         if start == -1:
@@ -1036,6 +1080,10 @@ Rules:
                 if depth == 0:
                     try:
                         json_str = cleaned[start:i + 1]
+                        
+                        # Пытаемся убрать trailing commas перед парсингом
+                        json_str = re.sub(r',(\s*[}\]])', r'\1', json_str)
+                        
                         json.loads(json_str)
                         return json_str
                     except json.JSONDecodeError:
@@ -1105,28 +1153,64 @@ Rules:
 
     @staticmethod
     def _build_repair_prompt(errors: List[Dict[str, Any]], raw_output: Optional[str], function_name: str) -> str:
+        """Строит промпт для исправления ошибок с конкретными инструкциями."""
         reasons = []
+        has_json_error = False
+        has_schema_error = False
+        
         for e in errors or []:
             t = e.get("type", "unknown")
             msg = e.get("message", "")
             reasons.append(f"- {t}: {msg}")
+            
+            if t in ["json_decode_error", "json_not_found"]:
+                has_json_error = True
+            elif t == "schema_validation":
+                has_schema_error = True
+        
         reasons_text = "\n".join(reasons) if reasons else "- unknown failure"
 
         snippet = (raw_output or "")[:800]
-        return (
+        
+        # Базовые инструкции
+        prompt = (
             f"REPAIR REQUIRED: Your previous JSON output was invalid.\n"
             "Fix the issues and return ONLY valid JSON.\n"
             "\n"
             "Issues detected:\n"
             f"{reasons_text}\n"
             "\n"
-            "CRITICAL: Output MUST be valid JSON (no trailing commas, proper quotes).\n"
-            "Use full paths: <catalog>.optimized.<table>\n"
-            "\n"
-            f"Previous invalid output:\n{snippet}\n"
-            "\n"
-            "Return ONLY valid JSON, no markdown, no explanations."
         )
+        
+        # Дополнительные инструкции в зависимости от типа ошибки
+        if has_json_error:
+            prompt += (
+                "CRITICAL JSON SYNTAX ERRORS DETECTED:\n"
+                "- Remove ALL trailing commas before } or ]\n"
+                "- Use double quotes (\") for strings, NOT single quotes\n"
+                "- Do NOT include any text, markdown, or code blocks\n"
+                "- Do NOT add comments inside JSON\n"
+                "- Start with { and end with }\n"
+                "\n"
+            )
+        
+        if has_schema_error:
+            prompt += (
+                "SCHEMA VALIDATION ERRORS DETECTED:\n"
+                f"- Ensure all required fields for '{function_name}' are present\n"
+                "- Use full paths: <catalog>.optimized.<table>\n"
+                "- Each statement must have 'statement' field\n"
+                "- Each query must have 'queryid' and 'query' fields\n"
+                "\n"
+            )
+        
+        prompt += (
+            f"Previous invalid output (first 800 chars):\n{snippet}\n"
+            "\n"
+            "FINAL INSTRUCTION: Return ONLY valid JSON, no markdown, no explanations, no extra text."
+        )
+        
+        return prompt
 
     @staticmethod
     def _validate_input(data: Dict[str, Any]) -> None:

@@ -37,6 +37,15 @@ class SimpleTaskManager:
         self.task_timeout_minutes = task_timeout_minutes
         self._running_tasks = 0
         self.use_llm = use_llm
+        
+        # Счетчики ошибок для мониторинга
+        self.error_stats = {
+            "timeout_errors": 0,
+            "llm_errors": 0,
+            "validation_errors": 0,
+            "database_errors": 0,
+            "total_errors": 0
+        }
 
         # Инициализируем LLM анализатор если включен
         self.llm_analyzer = None
@@ -78,7 +87,7 @@ class SimpleTaskManager:
         return None
 
     def get_stats(self) -> Dict[str, int]:
-        """Получение статистики задач"""
+        """Получение статистики задач с детальной информацией об ошибках"""
         running_count = sum(1 for task in self.tasks.values() if task.status == TaskStatus.RUNNING)
         completed_count = sum(1 for task in self.tasks.values() if task.status == TaskStatus.DONE)
         failed_count = sum(1 for task in self.tasks.values() if task.status == TaskStatus.FAILED)
@@ -88,7 +97,8 @@ class SimpleTaskManager:
             "running_tasks": running_count,
             "completed_tasks": completed_count,
             "failed_tasks": failed_count,
-            "max_workers": self.max_workers
+            "max_workers": self.max_workers,
+            "error_statistics": self.error_stats
         }
 
     async def _process_task(self, task_id: str):
@@ -129,6 +139,10 @@ class SimpleTaskManager:
             logger.error(error_msg)
             task.status = TaskStatus.FAILED
             task.error = error_msg
+            
+            # Увеличиваем счетчики ошибок
+            self.error_stats["timeout_errors"] += 1
+            self.error_stats["total_errors"] += 1
 
             # ✅ ДОБАВЛЕНО: Логирование ошибки таймаута
             save_task_io(task_id, input_data, error=error_msg)
@@ -138,6 +152,17 @@ class SimpleTaskManager:
             logger.error(error_msg)
             task.status = TaskStatus.FAILED
             task.error = error_msg
+            
+            # Увеличиваем счетчики ошибок по типу
+            error_str = str(e).lower()
+            if "json" in error_str or "модель не вернула" in error_str:
+                self.error_stats["llm_errors"] += 1
+            elif "валидация" in error_str:
+                self.error_stats["validation_errors"] += 1
+            elif "401" in error_str or "unauthorized" in error_str or "connection" in error_str:
+                self.error_stats["database_errors"] += 1
+            
+            self.error_stats["total_errors"] += 1
 
             # ✅ ДОБАВЛЕНО: Логирование ошибки
             save_task_io(task_id, input_data, error=error_msg)

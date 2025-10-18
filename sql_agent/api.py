@@ -15,6 +15,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 import os
 import logging
 import json
+import time
 
 from .models import (
     OptimizationRequest,
@@ -42,6 +43,9 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Время запуска сервиса для подсчета uptime
+startup_time = time.time()
+
 
 # Обработчик ошибок валидации JSON (возвращает 400 вместо 422)
 @app.exception_handler(RequestValidationError)
@@ -49,13 +53,43 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     """
     Обработчик ошибок валидации Pydantic.
     Возвращает 400 Bad Request вместо стандартного 422.
+    Распознает попытки отправить логи вместо запросов.
     """
     logger.warning(f"Ошибка валидации для {request.url.path}: {exc.errors()}")
+    
+    # Проверяем, не пытается ли клиент отправить лог вместо запроса
+    try:
+        body = await request.body()
+        data = json.loads(body)
+        
+        # Если есть поля task_id, timestamp, input, output - это лог!
+        if all(k in data for k in ['task_id', 'timestamp', 'input', 'output']):
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "error": "Bad Request",
+                    "detail": "Вы отправили файл лога задачи вместо нового запроса",
+                    "hint": "Для создания новой задачи отправьте JSON с полями: url, ddl, queries",
+                    "example": {
+                        "url": "jdbc:trino://host:port?user=username",
+                        "ddl": [{"statement": "CREATE TABLE ..."}],
+                        "queries": [{"queryid": "1", "query": "SELECT ...", "runquantity": 100}]
+                    }
+                }
+            )
+    except:
+        pass
+    
     return JSONResponse(
         status_code=400,
         content={
             "error": "Bad Request",
             "detail": "Невалидный JSON или неверная структура данных",
+            "required_fields": {
+                "url": "JDBC connection string (must start with 'jdbc:')",
+                "ddl": "Array of DDL statements with 'statement' field",
+                "queries": "Array of queries with 'queryid', 'query', 'runquantity' fields"
+            },
             "validation_errors": exc.errors()
         }
     )
@@ -201,6 +235,62 @@ async def get_stats():
         stats["log_info"] = {"error": f"Не удалось получить информацию о логах: {e}"}
 
     return stats
+
+
+@app.get("/metrics")
+async def get_metrics():
+    """
+    Получение детальных метрик для мониторинга.
+    
+    Включает:
+    - Uptime сервиса
+    - Статистику задач
+    - Счетчики ошибок по типам
+    - Состояние здоровья сервиса
+    """
+    stats = task_manager.get_stats()
+    
+    # Вычисляем uptime
+    uptime_seconds = time.time() - startup_time
+    uptime_minutes = uptime_seconds / 60
+    uptime_hours = uptime_minutes / 60
+    
+    # Определяем состояние здоровья
+    error_rate = 0
+    if stats["total_tasks"] > 0:
+        error_rate = stats["failed_tasks"] / stats["total_tasks"]
+    
+    health_status = "healthy"
+    if error_rate > 0.5:
+        health_status = "critical"
+    elif error_rate > 0.2:
+        health_status = "degraded"
+    elif stats.get("error_statistics", {}).get("database_errors", 0) > 10:
+        health_status = "warning"  # Много ошибок БД
+    
+    return {
+        "service": "sql-agent",
+        "version": "1.0.0",
+        "uptime": {
+            "seconds": round(uptime_seconds, 2),
+            "minutes": round(uptime_minutes, 2),
+            "hours": round(uptime_hours, 2)
+        },
+        "health": health_status,
+        "tasks": {
+            "total": stats["total_tasks"],
+            "running": stats["running_tasks"],
+            "completed": stats["completed_tasks"],
+            "failed": stats["failed_tasks"],
+            "max_workers": stats["max_workers"],
+            "error_rate": round(error_rate * 100, 2)
+        },
+        "errors": stats.get("error_statistics", {}),
+        "llm": {
+            "enabled": task_manager.use_llm,
+            "available": task_manager.llm_analyzer is not None
+        }
+    }
 
 
 @app.on_event("startup")

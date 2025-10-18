@@ -1,0 +1,518 @@
+{
+  "task_id": "076cdd7b-311d-4488-ac0d-5ced6e3599ef",
+  "timestamp": "2025-10-18T14:40:01.733840",
+  "input": {
+    "url": "jdbc:trino://trino.fjwgzjqf.data.bizmrg.com:443?user=hackuser&password=dovq(ozaq8ngt)oS",
+    "ddl": [
+      {
+        "statement": "CREATE TABLE mtpcds.data.call_center ( cc_call_center_sk bigint, cc_call_center_id varchar, cc_rec_start_date date, cc_rec_end_date date, cc_closed_date_sk integer, cc_open_date_sk integer, cc_name varchar, cc_class varchar, cc_employees integer, cc_sq_ft integer, cc_hours varchar, cc_manager varchar, cc_mkt_id integer, cc_mkt_class varchar, cc_mkt_desc varchar, cc_market_manager varchar, cc_division integer, cc_division_name varchar, cc_company integer, cc_company_name varchar, cc_street_number varchar, cc_street_name varchar, cc_street_type varchar, cc_suite_number varchar, cc_city varchar, cc_county varchar, cc_state varchar, cc_zip varchar, cc_country varchar, cc_gmt_offset decimal(5, 2), cc_tax_percentage decimal(5, 2) ) WITH ( format = 'PARQUET', format_version = 2 );"
+      },
+      {
+        "statement": "CREATE TABLE mtpcds.data.catalog_page ( cp_catalog_page_sk bigint, cp_catalog_page_id varchar, cp_start_date_sk integer, cp_end_date_sk integer, cp_department varchar, cp_catalog_number integer, cp_catalog_page_number integer, cp_description varchar, cp_type varchar ) WITH ( format = 'PARQUET', format_version = 2 );"
+      },
+      {
+        "statement": "CREATE TABLE mtpcds.data.catalog_returns ( cr_returned_date_sk bigint, cr_returned_time_sk bigint, cr_item_sk bigint, cr_refunded_customer_sk bigint, cr_refunded_cdemo_sk bigint, cr_refunded_hdemo_sk bigint, cr_refunded_addr_sk bigint, cr_returning_customer_sk bigint, cr_returning_cdemo_sk bigint, cr_returning_hdemo_sk bigint, cr_returning_addr_sk bigint, cr_call_center_sk bigint, cr_catalog_page_sk bigint, cr_ship_mode_sk bigint, cr_warehouse_sk bigint, cr_reason_sk bigint, cr_order_number bigint, cr_return_quantity integer, cr_return_amount decimal(7, 2), cr_return_tax decimal(7, 2), cr_return_amt_inc_tax decimal(7, 2), cr_fee decimal(7, 2), cr_return_ship_cost decimal(7, 2), cr_refunded_cash decimal(7, 2), cr_reversed_charge decimal(7, 2), cr_store_credit decimal(7, 2), cr_net_loss decimal(7, 2) ) WITH ( format = 'PARQUET', format_version = 2 );"
+      },
+      {
+        "statement": "CREATE TABLE mtpcds.data.catalog_sales ( cs_sold_date_sk bigint, cs_sold_time_sk bigint, cs_ship_date_sk bigint, cs_bill_customer_sk bigint, cs_bill_cdemo_sk bigint, cs_bill_hdemo_sk bigint, cs_bill_addr_sk bigint, cs_ship_customer_sk bigint, cs_ship_cdemo_sk bigint, cs_ship_hdemo_sk bigint, cs_ship_addr_sk bigint, cs_call_center_sk bigint, cs_catalog_page_sk bigint, cs_ship_mode_sk bigint, cs_warehouse_sk bigint, cs_item_sk bigint, cs_promo_sk bigint, cs_order_number bigint, cs_quantity integer, cs_wholesale_cost decimal(7, 2), cs_list_price decimal(7, 2), cs_sales_price decimal(7, 2), cs_ext_discount_amt decimal(7, 2), cs_ext_sales_price decimal(7, 2), cs_ext_wholesale_cost decimal(7, 2), cs_ext_list_price decimal(7, 2), cs_ext_tax decimal(7, 2), cs_coupon_amt decimal(7, 2), cs_ext_ship_cost decimal(7, 2), cs_net_paid decimal(7, 2), cs_net_paid_inc_tax decimal(7, 2), cs_net_paid_inc_ship decimal(7, 2), cs_net_paid_inc_ship_tax decimal(7, 2), cs_net_profit decimal(7, 2) ) WITH ( format = 'PARQUET', format_version = 2 );"
+      },
+      {
+        "statement": "CREATE TABLE mtpcds.data.customer ( c_customer_sk bigint, c_customer_id varchar, c_current_cdemo_sk bigint, c_current_hdemo_sk bigint, c_current_addr_sk bigint, c_first_shipto_date_sk bigint, c_first_sales_date_sk bigint, c_salutation varchar, c_first_name varchar, c_last_name varchar, c_preferred_cust_flag varchar, c_birth_day integer, c_birth_month integer, c_birth_year integer, c_birth_country varchar, c_login varchar, c_email_address varchar, c_last_review_date_sk bigint ) WITH ( format = 'PARQUET', format_version = 2 );"
+      },
+      {
+        "statement": "CREATE TABLE mtpcds.data.customer_address ( ca_address_sk bigint, ca_address_id varchar, ca_street_number varchar, ca_street_name varchar, ca_street_type varchar, ca_suite_number varchar, ca_city varchar, ca_county varchar, ca_state varchar, ca_zip varchar, ca_country varchar, ca_gmt_offset decimal(5, 2), ca_location_type varchar ) WITH ( format = 'PARQUET', format_version = 2 );"
+      },
+      {
+        "statement": "CREATE TABLE mtpcds.data.customer_demographics ( cd_demo_sk bigint, cd_gender varchar, cd_marital_status varchar, cd_education_status varchar, cd_purchase_estimate integer, cd_credit_rating varchar, cd_dep_count integer, cd_dep_employed_count integer, cd_dep_college_count integer ) WITH ( format = 'PARQUET', format_version = 2 );"
+      },
+      {
+        "statement": "CREATE TABLE mtpcds.data.date_dim ( d_date_sk bigint, d_date_id varchar, d_date date, d_month_seq integer, d_week_seq integer, d_quarter_seq integer, d_year integer, d_dow integer, d_moy integer, d_dom integer, d_qoy integer, d_fy_year integer, d_fy_quarter_seq integer, d_fy_week_seq integer, d_day_name varchar, d_quarter_name varchar, d_holiday varchar, d_weekend varchar, d_following_holiday varchar, d_first_dom integer, d_last_dom integer, d_same_day_ly integer, d_same_day_lq integer, d_current_day varchar, d_current_week varchar, d_current_month varchar, d_current_quarter varchar, d_current_year varchar ) WITH ( format = 'PARQUET', format_version = 2 );"
+      },
+      {
+        "statement": "CREATE TABLE mtpcds.data.dbgen_version ( dv_version varchar, dv_create_date date, dv_create_time time(6), dv_cmdline_args varchar ) WITH ( format = 'PARQUET', format_version = 2);"
+      },
+      {
+        "statement": "CREATE TABLE mtpcds.data.household_demographics ( hd_demo_sk bigint, hd_income_band_sk bigint, hd_buy_potential varchar, hd_dep_count integer, hd_vehicle_count integer ) WITH ( format = 'PARQUET', format_version = 2 );"
+      },
+      {
+        "statement": "CREATE TABLE mtpcds.data.income_band ( ib_income_band_sk bigint, ib_lower_bound integer, ib_upper_bound integer ) WITH ( format = 'PARQUET', format_version = 2 );"
+      },
+      {
+        "statement": "CREATE TABLE mtpcds.data.inventory ( inv_date_sk bigint, inv_item_sk bigint, inv_warehouse_sk bigint, inv_quantity_on_hand integer ) WITH ( format = 'PARQUET', format_version = 2 );"
+      },
+      {
+        "statement": "CREATE TABLE mtpcds.data.item ( i_item_sk bigint, i_item_id varchar, i_rec_start_date date, i_rec_end_date date, i_item_desc varchar, i_current_price decimal(7, 2), i_wholesale_cost decimal(7, 2), i_brand_id integer, i_brand varchar, i_class_id integer, i_class varchar, i_category_id integer, i_category varchar, i_manufact_id integer, i_manufact varchar, i_size varchar, i_formulation varchar, i_color varchar, i_units varchar, i_container varchar, i_manager_id integer, i_product_name varchar ) WITH ( format = 'PARQUET', format_version = 2 );"
+      },
+      {
+        "statement": "CREATE TABLE mtpcds.data.promotion ( p_promo_sk bigint, p_promo_id varchar, p_start_date_sk bigint, p_end_date_sk bigint, p_item_sk bigint, p_cost decimal(15, 2), p_response_targe integer, p_promo_name varchar, p_channel_dmail varchar, p_channel_email varchar, p_channel_catalog varchar, p_channel_tv varchar, p_channel_radio varchar, p_channel_press varchar, p_channel_event varchar, p_channel_demo varchar, p_channel_details varchar, p_purpose varchar, p_discount_active varchar ) WITH ( format = 'PARQUET', format_version = 2 );"
+      },
+      {
+        "statement": "CREATE TABLE mtpcds.data.reason ( r_reason_sk bigint, r_reason_id varchar, r_reason_desc varchar ) WITH ( format = 'PARQUET', format_version = 2 );"
+      },
+      {
+        "statement": "CREATE TABLE mtpcds.data.ship_mode ( sm_ship_mode_sk bigint, sm_ship_mode_id varchar, sm_type varchar, sm_code varchar, sm_carrier varchar, sm_contract varchar ) WITH ( format = 'PARQUET', format_version = 2 );"
+      },
+      {
+        "statement": "CREATE TABLE mtpcds.data.store ( s_store_sk bigint, s_store_id varchar, s_rec_start_date date, s_rec_end_date date, s_closed_date_sk bigint, s_store_name varchar, s_number_employees integer, s_floor_space integer, s_hours varchar, s_manager varchar, s_market_id integer, s_geography_class varchar, s_market_desc varchar, s_market_manager varchar, s_division_id integer, s_division_name varchar, s_company_id integer, s_company_name varchar, s_street_number varchar, s_street_name varchar, s_street_type varchar, s_suite_number varchar, s_city varchar, s_county varchar, s_state varchar, s_zip varchar, s_country varchar, s_gmt_offset decimal(5, 2), s_tax_precentage decimal(5, 2) ) WITH ( format = 'PARQUET', format_version = 2 );"
+      },
+      {
+        "statement": "CREATE TABLE mtpcds.data.store_returns ( sr_returned_date_sk bigint, sr_return_time_sk bigint, sr_item_sk bigint, sr_customer_sk bigint, sr_cdemo_sk bigint, sr_hdemo_sk bigint, sr_addr_sk bigint, sr_store_sk bigint, sr_reason_sk bigint, sr_ticket_number bigint, sr_return_quantity integer, sr_return_amt decimal(7, 2), sr_return_tax decimal(7, 2), sr_return_amt_inc_tax decimal(7, 2), sr_fee decimal(7, 2), sr_return_ship_cost decimal(7, 2), sr_refunded_cash decimal(7, 2), sr_reversed_charge decimal(7, 2), sr_store_credit decimal(7, 2), sr_net_loss decimal(7, 2) ) WITH ( format = 'PARQUET', format_version = 2 );"
+      },
+      {
+        "statement": "CREATE TABLE mtpcds.data.store_sales ( ss_sold_date_sk bigint, ss_sold_time_sk bigint, ss_item_sk bigint, ss_customer_sk bigint, ss_cdemo_sk bigint, ss_hdemo_sk bigint, ss_addr_sk bigint, ss_store_sk bigint, ss_promo_sk bigint, ss_ticket_number bigint, ss_quantity integer, ss_wholesale_cost decimal(7, 2), ss_list_price decimal(7, 2), ss_sales_price decimal(7, 2), ss_ext_discount_amt decimal(7, 2), ss_ext_sales_price decimal(7, 2), ss_ext_wholesale_cost decimal(7, 2), ss_ext_list_price decimal(7, 2), ss_ext_tax decimal(7, 2), ss_coupon_amt decimal(7, 2), ss_net_paid decimal(7, 2), ss_net_paid_inc_tax decimal(7, 2), ss_net_profit decimal(7, 2) ) WITH ( format = 'PARQUET', format_version = 2 );"
+      },
+      {
+        "statement": "CREATE TABLE mtpcds.data.time_dim ( t_time_sk bigint, t_time_id varchar, t_time integer, t_hour integer, t_minute integer, t_second integer, t_am_pm varchar, t_shift varchar, t_sub_shift varchar, t_meal_time varchar ) WITH ( format = 'PARQUET', format_version = 2 );"
+      },
+      {
+        "statement": "CREATE TABLE mtpcds.data.warehouse ( w_warehouse_sk bigint, w_warehouse_id varchar, w_warehouse_name varchar, w_warehouse_sq_ft integer, w_street_number varchar, w_street_name varchar, w_street_type varchar, w_suite_number varchar, w_city varchar, w_county varchar, w_state varchar, w_zip varchar, w_country varchar, w_gmt_offset decimal(5, 2) ) WITH ( format = 'PARQUET', format_version = 2 );"
+      },
+      {
+        "statement": "CREATE TABLE mtpcds.data.web_page ( wp_web_page_sk bigint, wp_web_page_id varchar, wp_rec_start_date date, wp_rec_end_date date, wp_creation_date_sk bigint, wp_access_date_sk bigint, wp_autogen_flag varchar, wp_customer_sk bigint, wp_url varchar, wp_type varchar, wp_char_count integer, wp_link_count integer, wp_image_count integer, wp_max_ad_count integer ) WITH ( format = 'PARQUET', format_version = 2 );"
+      },
+      {
+        "statement": "CREATE TABLE mtpcds.data.web_returns ( wr_returned_date_sk bigint, wr_returned_time_sk bigint, wr_item_sk bigint, wr_refunded_customer_sk bigint, wr_refunded_cdemo_sk bigint, wr_refunded_hdemo_sk bigint, wr_refunded_addr_sk bigint, wr_returning_customer_sk bigint, wr_returning_cdemo_sk bigint, wr_returning_hdemo_sk bigint, wr_returning_addr_sk bigint, wr_web_page_sk bigint, wr_reason_sk bigint, wr_order_number bigint, wr_return_quantity integer, wr_return_amt decimal(7, 2), wr_return_tax decimal(7, 2), wr_return_amt_inc_tax decimal(7, 2), wr_fee decimal(7, 2), wr_return_ship_cost decimal(7, 2), wr_refunded_cash decimal(7, 2), wr_reversed_charge decimal(7, 2), wr_account_credit decimal(7, 2), wr_net_loss decimal(7, 2) ) WITH ( format = 'PARQUET', format_version = 2 );"
+      },
+      {
+        "statement": "CREATE TABLE mtpcds.data.web_sales ( ws_sold_date_sk bigint, ws_sold_time_sk bigint, ws_ship_date_sk bigint, ws_item_sk bigint, ws_bill_customer_sk bigint, ws_bill_cdemo_sk bigint, ws_bill_hdemo_sk bigint, ws_bill_addr_sk bigint, ws_ship_customer_sk bigint, ws_ship_cdemo_sk bigint, ws_ship_hdemo_sk bigint, ws_ship_addr_sk bigint, ws_web_page_sk bigint, ws_web_site_sk bigint, ws_ship_mode_sk bigint, ws_warehouse_sk bigint, ws_promo_sk bigint, ws_order_number bigint, ws_quantity integer, ws_wholesale_cost decimal(7, 2), ws_list_price decimal(7, 2), ws_sales_price decimal(7, 2), ws_ext_discount_amt decimal(7, 2), ws_ext_sales_price decimal(7, 2), ws_ext_wholesale_cost decimal(7, 2), ws_ext_list_price decimal(7, 2), ws_ext_tax decimal(7, 2), ws_coupon_amt decimal(7, 2), ws_ext_ship_cost decimal(7, 2), ws_net_paid decimal(7, 2), ws_net_paid_inc_tax decimal(7, 2), ws_net_paid_inc_ship decimal(7, 2), ws_net_paid_inc_ship_tax decimal(7, 2), ws_net_profit decimal(7, 2) ) WITH ( format = 'PARQUET', format_version = 2 );"
+      },
+      {
+        "statement": "CREATE TABLE mtpcds.data.web_site ( web_site_sk bigint, web_site_id varchar, web_rec_start_date date, web_rec_end_date date, web_name varchar, web_open_date_sk bigint, web_close_date_sk bigint, web_class varchar, web_manager varchar, web_mkt_id integer, web_mkt_class varchar, web_mkt_desc varchar, web_market_manager varchar, web_company_id integer, web_company_name varchar, web_street_number varchar, web_street_name varchar, web_street_type varchar, web_suite_number varchar, web_city varchar, web_county varchar, web_state varchar, web_zip varchar, web_country varchar, web_gmt_offset decimal(5, 2), web_tax_percentage decimal(5, 2) ) WITH ( format = 'PARQUET', format_version = 2 );"
+      }
+    ],
+    "queries": [
+      {
+        "queryid": "4a1d63e5-6532-4cc4-b4c9-b06cb6301a89",
+        "query": "SELECT sr_reason_sk, COUNT(*) AS return_count FROM mtpcds.data.store_returns WHERE sr_returned_date_sk IN ( SELECT d_date_sk FROM mtpcds.data.date_dim WHERE d_year = 2000 AND d_moy = 1 ) GROUP BY sr_reason_sk ORDER BY sr_reason_sk;",
+        "runquantity": 2723,
+        "executiontime": 4
+      },
+      {
+        "queryid": "54d87f33-a883-4dc8-9d5f-1e90d957b91f",
+        "query": "SELECT i_item_id, i_item_desc, s_state, Count(ss_quantity) AS store_sales_quantitycount, Avg(ss_quantity) AS store_sales_quantityave, Stddev_samp(ss_quantity) AS store_sales_quantitystdev, Stddev_samp(ss_quantity) / Avg(ss_quantity) AS store_sales_quantitycov, Count(sr_return_quantity) AS store_returns_quantitycount, Avg(sr_return_quantity) AS store_returns_quantityave, Stddev_samp(sr_return_quantity) AS store_returns_quantitystdev, Stddev_samp(sr_return_quantity) / Avg(sr_return_quantity) AS store_returns_quantitycov, Count(cs_quantity) AS catalog_sales_quantitycount, Avg(cs_quantity) AS catalog_sales_quantityave, Stddev_samp(cs_quantity) / Avg(cs_quantity) AS catalog_sales_quantitystdev, Stddev_samp(cs_quantity) / Avg(cs_quantity) AS catalog_sales_quantitycov FROM mtpcds.data.store_sales, mtpcds.data.store_returns, mtpcds.data.catalog_sales, mtpcds.data.date_dim d1, mtpcds.data.date_dim d2, mtpcds.data.date_dim d3, mtpcds.data.store, mtpcds.data.item WHERE d1.d_quarter_name = '1999Q1' AND d1.d_date_sk = ss_sold_date_sk AND i_item_sk = ss_item_sk AND s_store_sk = ss_store_sk AND ss_customer_sk = sr_customer_sk AND ss_item_sk = sr_item_sk AND ss_ticket_number = sr_ticket_number AND sr_returned_date_sk = d2.d_date_sk AND d2.d_quarter_name IN ( '1999Q1', '1999Q2', '1999Q3' ) AND sr_customer_sk = cs_bill_customer_sk AND sr_item_sk = cs_item_sk AND cs_sold_date_sk = d3.d_date_sk AND d3.d_quarter_name IN ( '1999Q1', '1999Q2', '1999Q3' ) GROUP BY i_item_id, i_item_desc, s_state ORDER BY i_item_id, i_item_desc, s_state LIMIT 100;",
+        "runquantity": 674,
+        "executiontime": 23
+      },
+      {
+        "queryid": "f29d22e4-cae2-461a-82e6-9cfce435a27a",
+        "query": "SELECT cd_gender, cd_marital_status, cd_education_status, Count(*) cnt1, cd_purchase_estimate, Count(*) cnt2, cd_credit_rating, Count(*) cnt3, cd_dep_count, Count(*) cnt4, cd_dep_employed_count, Count(*) cnt5, cd_dep_college_count, Count(*) cnt6 FROM mtpcds.data.customer c, mtpcds.data.customer_address ca, mtpcds.data.customer_demographics WHERE c.c_current_addr_sk = ca.ca_address_sk AND ca_county IN ( 'Lycoming County', 'Sheridan County', 'Kandiyohi County', 'Pike County', 'Greene County' ) AND cd_demo_sk = c.c_current_cdemo_sk AND EXISTS (SELECT * FROM mtpcds.data.store_sales, mtpcds.data.date_dim WHERE c.c_customer_sk = ss_customer_sk AND ss_sold_date_sk = d_date_sk AND d_year = 2002 AND d_moy BETWEEN 4 AND 4 + 3) AND ( EXISTS (SELECT * FROM mtpcds.data.web_sales, mtpcds.data.date_dim WHERE c.c_customer_sk = ws_bill_customer_sk AND ws_sold_date_sk = d_date_sk AND d_year = 2002 AND d_moy BETWEEN 4 AND 4 + 3) OR EXISTS (SELECT * FROM mtpcds.data.catalog_sales, mtpcds.data.date_dim WHERE c.c_customer_sk = cs_ship_customer_sk AND cs_sold_date_sk = d_date_sk AND d_year = 2002 AND d_moy BETWEEN 4 AND 4 + 3) ) GROUP BY cd_gender, cd_marital_status, cd_education_status, cd_purchase_estimate, cd_credit_rating, cd_dep_count, cd_dep_employed_count, cd_dep_college_count ORDER BY cd_gender, cd_marital_status, cd_education_status, cd_purchase_estimate, cd_credit_rating, cd_dep_count, cd_dep_employed_count, cd_dep_college_count LIMIT 100;",
+        "runquantity": 389,
+        "executiontime": 9
+      },
+      {
+        "queryid": "a088c4eb-626d-4455-b9fb-3eeae8454e02",
+        "query": "WITH year_total AS (SELECT c_customer_id customer_id, c_first_name customer_first_name , c_last_name customer_last_name, c_preferred_cust_flag customer_preferred_cust_flag , c_birth_country customer_birth_country, c_login customer_login, c_email_address customer_email_address, d_year dyear, Sum(ss_ext_list_price - ss_ext_discount_amt) year_total, 's' sale_type FROM mtpcds.data.customer, mtpcds.data.store_sales, mtpcds.data.date_dim WHERE c_customer_sk = ss_customer_sk AND ss_sold_date_sk = d_date_sk GROUP BY c_customer_id, c_first_name, c_last_name, c_preferred_cust_flag, c_birth_country, c_login, c_email_address, d_year UNION ALL SELECT c_customer_id customer_id, c_first_name customer_first_name , c_last_name customer_last_name, c_preferred_cust_flag customer_preferred_cust_flag , c_birth_country customer_birth_country, c_login customer_login, c_email_address customer_email_address, d_year dyear, Sum(ws_ext_list_price - ws_ext_discount_amt) year_total, 'w' sale_type FROM mtpcds.data.customer, mtpcds.data.web_sales, mtpcds.data.date_dim WHERE c_customer_sk = ws_bill_customer_sk AND ws_sold_date_sk = d_date_sk GROUP BY c_customer_id, c_first_name, c_last_name, c_preferred_cust_flag, c_birth_country, c_login, c_email_address, d_year) SELECT t_s_secyear.customer_id, t_s_secyear.customer_first_name, t_s_secyear.customer_last_name, t_s_secyear.customer_birth_country FROM year_total t_s_firstyear, year_total t_s_secyear, year_total t_w_firstyear, year_total t_w_secyear WHERE t_s_secyear.customer_id = t_s_firstyear.customer_id AND t_s_firstyear.customer_id = t_w_secyear.customer_id AND t_s_firstyear.customer_id = t_w_firstyear.customer_id AND t_s_firstyear.sale_type = 's' AND t_w_firstyear.sale_type = 'w' AND t_s_secyear.sale_type = 's' AND t_w_secyear.sale_type = 'w' AND t_s_firstyear.dyear = 2001 AND t_s_secyear.dyear = 2001 + 1 AND t_w_firstyear.dyear = 2001 AND t_w_secyear.dyear = 2001 + 1 AND t_s_firstyear.year_total > 0 AND t_w_firstyear.year_total > 0 AND CASE WHEN t_w_firstyear.year_total > 0 THEN t_w_secyear.year_total / t_w_firstyear.year_total ELSE 0.0 END > CASE WHEN t_s_firstyear.year_total > 0 THEN t_s_secyear.year_total / t_s_firstyear.year_total ELSE 0.0 END ORDER BY t_s_secyear.customer_id, t_s_secyear.customer_first_name, t_s_secyear.customer_last_name, t_s_secyear.customer_birth_country LIMIT 100;",
+        "runquantity": 910,
+        "executiontime": 30
+      },
+      {
+        "queryid": "7de27eab-cf58-4658-ad6f-3727273baf72",
+        "query": "SELECT Avg(ss_quantity), Avg(ss_ext_sales_price), Avg(ss_ext_wholesale_cost), Sum(ss_ext_wholesale_cost) FROM mtpcds.data.store_sales, mtpcds.data.store, mtpcds.data.customer_demographics, mtpcds.data.household_demographics, mtpcds.data.customer_address, mtpcds.data.date_dim WHERE s_store_sk = ss_store_sk AND ss_sold_date_sk = d_date_sk AND d_year = 2001 AND ( ( ss_hdemo_sk = hd_demo_sk AND cd_demo_sk = ss_cdemo_sk AND cd_marital_status = 'U' AND cd_education_status = 'Advanced Degree' AND ss_sales_price BETWEEN 100.00 AND 150.00 AND hd_dep_count = 3 ) OR ( ss_hdemo_sk = hd_demo_sk AND cd_demo_sk = ss_cdemo_sk AND cd_marital_status = 'M' AND cd_education_status = 'Primary' AND ss_sales_price BETWEEN 50.00 AND 100.00 AND hd_dep_count = 1 ) OR ( ss_hdemo_sk = hd_demo_sk AND cd_demo_sk = ss_cdemo_sk AND cd_marital_status = 'D' AND cd_education_status = 'Secondary' AND ss_sales_price BETWEEN 150.00 AND 200.00 AND hd_dep_count = 1 ) ) AND ( ( ss_addr_sk = ca_address_sk AND ca_country = 'United States' AND ca_state IN ( 'AZ', 'NE', 'IA' ) AND ss_net_profit BETWEEN 100 AND 200 ) OR ( ss_addr_sk = ca_address_sk AND ca_country = 'United States' AND ca_state IN ( 'MS', 'CA', 'NV' ) AND ss_net_profit BETWEEN 150 AND 300 ) OR ( ss_addr_sk = ca_address_sk AND ca_country = 'United States' AND ca_state IN ( 'GA', 'TX', 'NJ' ) AND ss_net_profit BETWEEN 50 AND 250 ) );",
+        "runquantity": 238,
+        "executiontime": 17
+      },
+      {
+        "queryid": "b19811e8-d526-4a53-b487-65370dcb4851",
+        "query": "SELECT ca_zip, Sum(cs_sales_price) FROM mtpcds.data.catalog_sales, mtpcds.data.customer, mtpcds.data.customer_address, mtpcds.data.date_dim WHERE cs_bill_customer_sk = c_customer_sk AND c_current_addr_sk = ca_address_sk AND ( Substr(ca_zip, 1, 5) IN ( '85669', '86197', '88274', '83405', '86475', '85392', '85460', '80348', '81792' ) OR ca_state IN ( 'CA', 'WA', 'GA' ) OR cs_sales_price > 500 ) AND cs_sold_date_sk = d_date_sk AND d_qoy = 1 AND d_year = 1998 GROUP BY ca_zip ORDER BY ca_zip LIMIT 100;",
+        "runquantity": 170,
+        "executiontime": 5
+      },
+      {
+        "queryid": "97de6a9c-e775-41cd-bc49-229d51f9521b",
+        "query": "SELECT Count(DISTINCT cs_order_number) AS \"order count\" , Sum(cs_ext_ship_cost) AS \"total shipping cost\" , Sum(cs_net_profit) AS \"total net profit\" FROM mtpcds.data.catalog_sales cs1 , mtpcds.data.date_dim , mtpcds.data.customer_address , mtpcds.data.call_center WHERE d_date BETWEEN cast('2002-3-01' as date) AND ( Cast('2002-3-01' AS DATE) + INTERVAL '60' day) AND cs1.cs_ship_date_sk = d_date_sk AND cs1.cs_ship_addr_sk = ca_address_sk AND ca_state = 'IA' AND cs1.cs_call_center_sk = cc_call_center_sk AND cc_county IN ('Williamson County', 'Williamson County', 'Williamson County', 'Williamson County', 'Williamson County' ) AND EXISTS ( SELECT * FROM mtpcds.data.catalog_sales cs2 WHERE cs1.cs_order_number = cs2.cs_order_number AND cs1.cs_warehouse_sk <> cs2.cs_warehouse_sk) AND NOT EXISTS ( SELECT * FROM mtpcds.data.catalog_returns cr1 WHERE cs1.cs_order_number = cr1.cr_order_number) ORDER BY count(DISTINCT cs_order_number) LIMIT 100;",
+        "runquantity": 1974,
+        "executiontime": 11
+      },
+      {
+        "queryid": "e21f4774-fc6c-4d18-84a4-2645a4ccc7d1",
+        "query": "SELECT i_item_id, i_item_desc, s_state, Count(ss_quantity) AS store_sales_quantitycount, Avg(ss_quantity) AS store_sales_quantityave, Stddev_samp(ss_quantity) AS store_sales_quantitystdev, Stddev_samp(ss_quantity) / Avg(ss_quantity) AS store_sales_quantitycov, Count(sr_return_quantity) AS store_returns_quantitycount, Avg(sr_return_quantity) AS store_returns_quantityave, Stddev_samp(sr_return_quantity) AS store_returns_quantitystdev, Stddev_samp(sr_return_quantity) / Avg(sr_return_quantity) AS store_returns_quantitycov, Count(cs_quantity) AS catalog_sales_quantitycount, Avg(cs_quantity) AS catalog_sales_quantityave, Stddev_samp(cs_quantity) / Avg(cs_quantity) AS catalog_sales_quantitystdev, Stddev_samp(cs_quantity) / Avg(cs_quantity) AS catalog_sales_quantitycov FROM mtpcds.data.store_sales, mtpcds.data.store_returns, mtpcds.data.catalog_sales, mtpcds.data.date_dim d1, mtpcds.data.date_dim d2, mtpcds.data.date_dim d3, mtpcds.data.store, mtpcds.data.item WHERE d1.d_quarter_name = '1999Q1' AND d1.d_date_sk = ss_sold_date_sk AND i_item_sk = ss_item_sk AND s_store_sk = ss_store_sk AND ss_customer_sk = sr_customer_sk AND ss_item_sk = sr_item_sk AND ss_ticket_number = sr_ticket_number AND sr_returned_date_sk = d2.d_date_sk AND d2.d_quarter_name IN ( '1999Q1', '1999Q2', '1999Q3' ) AND sr_customer_sk = cs_bill_customer_sk AND sr_item_sk = cs_item_sk AND cs_sold_date_sk = d3.d_date_sk AND d3.d_quarter_name IN ( '1999Q1', '1999Q2', '1999Q3' ) GROUP BY i_item_id, i_item_desc, s_state ORDER BY i_item_id, i_item_desc, s_state LIMIT 100;",
+        "runquantity": 571,
+        "executiontime": 16
+      },
+      {
+        "queryid": "de49c63d-a7f3-4f45-8df1-1b188438910d",
+        "query": "SELECT i_brand_id brand_id, i_brand brand, i_manufact_id, i_manufact, Sum(ss_ext_sales_price) ext_price FROM mtpcds.data.date_dim, mtpcds.data.store_sales, mtpcds.data.item, mtpcds.data.customer, mtpcds.data.customer_address, mtpcds.data.store WHERE d_date_sk = ss_sold_date_sk AND ss_item_sk = i_item_sk AND i_manager_id = 38 AND d_moy = 12 AND d_year = 1998 AND ss_customer_sk = c_customer_sk AND c_current_addr_sk = ca_address_sk AND Substr(ca_zip, 1, 5) <> Substr(s_zip, 1, 5) AND ss_store_sk = s_store_sk GROUP BY i_brand, i_brand_id, i_manufact_id, i_manufact ORDER BY ext_price DESC, i_brand, i_brand_id, i_manufact_id, i_manufact LIMIT 100;",
+        "runquantity": 2217,
+        "executiontime": 22
+      },
+      {
+        "queryid": "c14c3980-92a9-4a54-976e-08a10c8ffcff",
+        "query": "SELECT * FROM ( SELECT w_warehouse_name , i_item_id , Sum( CASE WHEN ( Cast(d_date AS DATE) < Cast ('2000-05-13' AS DATE)) THEN inv_quantity_on_hand ELSE 0 END) AS inv_before , Sum( CASE WHEN ( Cast(d_date AS DATE) >= Cast ('2000-05-13' AS DATE)) THEN inv_quantity_on_hand ELSE 0 END) AS inv_after FROM mtpcds.data.inventory , mtpcds.data.warehouse , mtpcds.data.item , mtpcds.data.date_dim WHERE i_current_price BETWEEN 0.99 AND 1.49 AND i_item_sk = inv_item_sk AND inv_warehouse_sk = w_warehouse_sk AND inv_date_sk = d_date_sk AND d_date BETWEEN (Cast ('2000-05-13' AS DATE) - INTERVAL '30' day) AND ( cast ('2000-05-13' AS date) + INTERVAL '30' day) GROUP BY w_warehouse_name, i_item_id) x WHERE ( CASE WHEN inv_before > 0 THEN inv_after / inv_before ELSE NULL END) BETWEEN 2.0/3.0 AND 3.0/2.0 ORDER BY w_warehouse_name , i_item_id LIMIT 100;",
+        "runquantity": 457,
+        "executiontime": 18
+      },
+      {
+        "queryid": "96c93781-81b6-4e57-9248-71f4f7ea6383",
+        "query": "SELECT i_product_name, i_brand, i_class, i_category, Avg(inv_quantity_on_hand) qoh FROM mtpcds.data.inventory, mtpcds.data.date_dim, mtpcds.data.item, mtpcds.data.warehouse WHERE inv_date_sk = d_date_sk AND inv_item_sk = i_item_sk AND inv_warehouse_sk = w_warehouse_sk AND d_month_seq BETWEEN 1205 AND 1205 + 11 GROUP BY rollup( i_product_name, i_brand, i_class, i_category ) ORDER BY qoh, i_product_name, i_brand, i_class, i_category LIMIT 100;",
+        "runquantity": 387,
+        "executiontime": 42
+      },
+      {
+        "queryid": "d96fdedb-5338-488c-a8e7-dec7606bf313",
+        "query": "WITH ssales AS (SELECT c_last_name, c_first_name, s_store_name, ca_state, s_state, i_color, i_current_price, i_manager_id, i_units, i_size, Sum(ss_net_profit) netpaid FROM mtpcds.data.store_sales, mtpcds.data.store_returns, mtpcds.data.store, mtpcds.data.item, mtpcds.data.customer, mtpcds.data.customer_address WHERE ss_ticket_number = sr_ticket_number AND ss_item_sk = sr_item_sk AND ss_customer_sk = c_customer_sk AND ss_item_sk = i_item_sk AND ss_store_sk = s_store_sk AND c_birth_country = Upper(ca_country) AND s_zip = ca_zip AND s_market_id = 6 GROUP BY c_last_name, c_first_name, s_store_name, ca_state, s_state, i_color, i_current_price, i_manager_id, i_units, i_size) SELECT c_last_name, c_first_name, s_store_name, Sum(netpaid) paid FROM ssales WHERE i_color = 'chartreuse' GROUP BY c_last_name, c_first_name, s_store_name HAVING Sum(netpaid) > (SELECT 0.05 * Avg(netpaid) FROM ssales);",
+        "runquantity": 297,
+        "executiontime": 80
+      },
+      {
+        "queryid": "d5a3ee08-8e9d-443c-affc-64cac475cf94",
+        "query": "SELECT i_item_id, i_item_desc, s_store_id, s_store_name, Max(ss_net_profit) AS store_sales_profit, Max(sr_net_loss) AS store_returns_loss, Max(cs_net_profit) AS catalog_sales_profit FROM mtpcds.data.store_sales, mtpcds.data.store_returns, mtpcds.data.catalog_sales, mtpcds.data.date_dim d1, mtpcds.data.date_dim d2, mtpcds.data.date_dim d3, mtpcds.data.store, mtpcds.data.item WHERE d1.d_moy = 4 AND d1.d_year = 2001 AND d1.d_date_sk = ss_sold_date_sk AND i_item_sk = ss_item_sk AND s_store_sk = ss_store_sk AND ss_customer_sk = sr_customer_sk AND ss_item_sk = sr_item_sk AND ss_ticket_number = sr_ticket_number AND sr_returned_date_sk = d2.d_date_sk AND d2.d_moy BETWEEN 4 AND 10 AND d2.d_year = 2001 AND sr_customer_sk = cs_bill_customer_sk AND sr_item_sk = cs_item_sk AND cs_sold_date_sk = d3.d_date_sk AND d3.d_moy BETWEEN 4 AND 10 AND d3.d_year = 2001 GROUP BY i_item_id, i_item_desc, s_store_id, s_store_name ORDER BY i_item_id, i_item_desc, s_store_id, s_store_name LIMIT 100;",
+        "runquantity": 99,
+        "executiontime": 26
+      },
+      {
+        "queryid": "f25bd86c-d10d-49d9-b693-6fdcf7c3bf8a",
+        "query": "SELECT * FROM (SELECT Avg(ss_list_price) B1_LP, Count(ss_list_price) B1_CNT, Count(DISTINCT ss_list_price) B1_CNTD FROM mtpcds.data.store_sales WHERE ss_quantity BETWEEN 0 AND 5 AND ( ss_list_price BETWEEN 18 AND 18 + 10 OR ss_coupon_amt BETWEEN 1939 AND 1939 + 1000 OR ss_wholesale_cost BETWEEN 34 AND 34 + 20 )) B1, (SELECT Avg(ss_list_price) B2_LP, Count(ss_list_price) B2_CNT, Count(DISTINCT ss_list_price) B2_CNTD FROM mtpcds.data.store_sales WHERE ss_quantity BETWEEN 6 AND 10 AND ( ss_list_price BETWEEN 1 AND 1 + 10 OR ss_coupon_amt BETWEEN 35 AND 35 + 1000 OR ss_wholesale_cost BETWEEN 50 AND 50 + 20 )) B2, (SELECT Avg(ss_list_price) B3_LP, Count(ss_list_price) B3_CNT, Count(DISTINCT ss_list_price) B3_CNTD FROM mtpcds.data.store_sales WHERE ss_quantity BETWEEN 11 AND 15 AND ( ss_list_price BETWEEN 91 AND 91 + 10 OR ss_coupon_amt BETWEEN 1412 AND 1412 + 1000 OR ss_wholesale_cost BETWEEN 17 AND 17 + 20 )) B3, (SELECT Avg(ss_list_price) B4_LP, Count(ss_list_price) B4_CNT, Count(DISTINCT ss_list_price) B4_CNTD FROM mtpcds.data.store_sales WHERE ss_quantity BETWEEN 16 AND 20 AND ( ss_list_price BETWEEN 9 AND 9 + 10 OR ss_coupon_amt BETWEEN 5270 AND 5270 + 1000 OR ss_wholesale_cost BETWEEN 29 AND 29 + 20 )) B4, (SELECT Avg(ss_list_price) B5_LP, Count(ss_list_price) B5_CNT, Count(DISTINCT ss_list_price) B5_CNTD FROM mtpcds.data.store_sales WHERE ss_quantity BETWEEN 21 AND 25 AND ( ss_list_price BETWEEN 45 AND 45 + 10 OR ss_coupon_amt BETWEEN 826 AND 826 + 1000 OR ss_wholesale_cost BETWEEN 5 AND 5 + 20 )) B5, (SELECT Avg(ss_list_price) B6_LP, Count(ss_list_price) B6_CNT, Count(DISTINCT ss_list_price) B6_CNTD FROM mtpcds.data.store_sales WHERE ss_quantity BETWEEN 26 AND 30 AND ( ss_list_price BETWEEN 174 AND 174 + 10 OR ss_coupon_amt BETWEEN 5548 AND 5548 + 1000 OR ss_wholesale_cost BETWEEN 42 AND 42 + 20 )) B6 LIMIT 100;",
+        "runquantity": 478,
+        "executiontime": 23
+      },
+      {
+        "queryid": "2fe63281-c159-4cb9-b72e-683fd703664a",
+        "query": "SELECT i_item_id, i_item_desc, s_store_id, s_store_name, Avg(ss_quantity) AS store_sales_quantity, Avg(sr_return_quantity) AS store_returns_quantity, Avg(cs_quantity) AS catalog_sales_quantity FROM mtpcds.data.store_sales, mtpcds.data.store_returns, mtpcds.data.catalog_sales, mtpcds.data.date_dim d1, mtpcds.data.date_dim d2, mtpcds.data.date_dim d3, mtpcds.data.store, mtpcds.data.item WHERE d1.d_moy = 4 AND d1.d_year = 1998 AND d1.d_date_sk = ss_sold_date_sk AND i_item_sk = ss_item_sk AND s_store_sk = ss_store_sk AND ss_customer_sk = sr_customer_sk AND ss_item_sk = sr_item_sk AND ss_ticket_number = sr_ticket_number AND sr_returned_date_sk = d2.d_date_sk AND d2.d_moy BETWEEN 4 AND 4 + 3 AND d2.d_year = 1998 AND sr_customer_sk = cs_bill_customer_sk AND sr_item_sk = cs_item_sk AND cs_sold_date_sk = d3.d_date_sk AND d3.d_year IN ( 1998, 1998 + 1, 1998 + 2 ) GROUP BY i_item_id, i_item_desc, s_store_id, s_store_name ORDER BY i_item_id, i_item_desc, s_store_id, s_store_name LIMIT 100;",
+        "runquantity": 241,
+        "executiontime": 37
+      },
+      {
+        "queryid": "8143a19e-8951-47d2-b765-83081e9f4860",
+        "query": "SELECT dt.d_year, item.i_brand_id brand_id, item.i_brand brand, Sum(ss_ext_discount_amt) sum_agg FROM mtpcds.data.date_dim dt, mtpcds.data.store_sales, mtpcds.data.item WHERE dt.d_date_sk = store_sales.ss_sold_date_sk AND store_sales.ss_item_sk = item.i_item_sk AND item.i_manufact_id = 427 AND dt.d_moy = 11 GROUP BY dt.d_year, item.i_brand, item.i_brand_id ORDER BY dt.d_year, sum_agg DESC, brand_id LIMIT 100;",
+        "runquantity": 331,
+        "executiontime": 7
+      },
+      {
+        "queryid": "bf9177fa-470d-44ab-94f2-0d2dde08b280",
+        "query": "WITH customer_total_return AS (SELECT wr_returning_customer_sk AS ctr_customer_sk, ca_state AS ctr_state, Sum(wr_return_amt) AS ctr_total_return FROM mtpcds.data.web_returns, mtpcds.data.date_dim, mtpcds.data.customer_address WHERE wr_returned_date_sk = d_date_sk AND d_year = 2000 AND wr_returning_addr_sk = ca_address_sk GROUP BY wr_returning_customer_sk, ca_state) SELECT c_customer_id, c_salutation, c_first_name, c_last_name, c_preferred_cust_flag, c_birth_day, c_birth_month, c_birth_year, c_birth_country, c_login, c_email_address, ctr_total_return FROM customer_total_return ctr1, mtpcds.data.customer_address, mtpcds.data.customer WHERE ctr1.ctr_total_return > (SELECT Avg(ctr_total_return) * 1.2 FROM customer_total_return ctr2 WHERE ctr1.ctr_state = ctr2.ctr_state) AND ca_address_sk = c_current_addr_sk AND ca_state = 'IN' AND ctr1.ctr_customer_sk = c_customer_sk ORDER BY c_customer_id, c_salutation, c_first_name, c_last_name, c_preferred_cust_flag, c_birth_day, c_birth_month, c_birth_year, c_birth_country, c_login, c_email_address, ctr_total_return LIMIT 100;",
+        "runquantity": 662,
+        "executiontime": 4
+      },
+      {
+        "queryid": "7e9ed090-e3ee-4d67-aa20-596181100c44",
+        "query": "WITH ss AS (SELECT ca_county, d_qoy, d_year, Sum(ss_ext_sales_price) AS store_sales FROM mtpcds.data.store_sales, mtpcds.data.date_dim, mtpcds.data.customer_address WHERE ss_sold_date_sk = d_date_sk AND ss_addr_sk = ca_address_sk GROUP BY ca_county, d_qoy, d_year), ws AS (SELECT ca_county, d_qoy, d_year, Sum(ws_ext_sales_price) AS web_sales FROM mtpcds.data.web_sales, mtpcds.data.date_dim, mtpcds.data.customer_address WHERE ws_sold_date_sk = d_date_sk AND ws_bill_addr_sk = ca_address_sk GROUP BY ca_county, d_qoy, d_year) SELECT ss1.ca_county, ss1.d_year, ws2.web_sales / ws1.web_sales web_q1_q2_increase, ss2.store_sales / ss1.store_sales store_q1_q2_increase, ws3.web_sales / ws2.web_sales web_q2_q3_increase, ss3.store_sales / ss2.store_sales store_q2_q3_increase FROM ss ss1, ss ss2, ss ss3, ws ws1, ws ws2, ws ws3 WHERE ss1.d_qoy = 1 AND ss1.d_year = 2001 AND ss1.ca_county = ss2.ca_county AND ss2.d_qoy = 2 AND ss2.d_year = 2001 AND ss2.ca_county = ss3.ca_county AND ss3.d_qoy = 3 AND ss3.d_year = 2001 AND ss1.ca_county = ws1.ca_county AND ws1.d_qoy = 1 AND ws1.d_year = 2001 AND ws1.ca_county = ws2.ca_county AND ws2.d_qoy = 2 AND ws2.d_year = 2001 AND ws1.ca_county = ws3.ca_county AND ws3.d_qoy = 3 AND ws3.d_year = 2001 AND CASE WHEN ws1.web_sales > 0 THEN ws2.web_sales / ws1.web_sales ELSE NULL END > CASE WHEN ss1.store_sales > 0 THEN ss2.store_sales / ss1.store_sales ELSE NULL END AND CASE WHEN ws2.web_sales > 0 THEN ws3.web_sales / ws2.web_sales ELSE NULL END > CASE WHEN ss2.store_sales > 0 THEN ss3.store_sales / ss2.store_sales ELSE NULL END ORDER BY ss1.d_year;",
+        "runquantity": 297,
+        "executiontime": 20
+      },
+      {
+        "queryid": "d2f8845d-28c8-4664-994e-508359df5b94",
+        "query": "SELECT Sum(cs_ext_discount_amt) AS \"excess discount amount\" FROM mtpcds.data.catalog_sales , mtpcds.data.item , mtpcds.data.date_dim WHERE i_manufact_id = 610 AND i_item_sk = cs_item_sk AND d_date BETWEEN cast('2001-03-04' as date) AND ( Cast('2001-03-04' AS DATE) + INTERVAL '90' day) AND d_date_sk = cs_sold_date_sk AND cs_ext_discount_amt > ( SELECT 1.3 * avg(cs_ext_discount_amt) FROM mtpcds.data.catalog_sales , mtpcds.data.date_dim WHERE cs_item_sk = i_item_sk AND d_date BETWEEN CAST('2001-03-04'as date) AND ( cast('2001-03-04' AS date) + INTERVAL '90' day) AND d_date_sk = cs_sold_date_sk ) LIMIT 100;",
+        "runquantity": 1722,
+        "executiontime": 7
+      },
+      {
+        "queryid": "d50793d5-5b20-4171-97c8-cfe1f3a56710",
+        "query": "SELECT ca_state, cd_gender, cd_marital_status, cd_dep_count, Count(*) cnt1, Stddev_samp(cd_dep_count), Avg(cd_dep_count), Max(cd_dep_count), cd_dep_employed_count, Count(*) cnt2, Stddev_samp(cd_dep_employed_count), Avg(cd_dep_employed_count), Max(cd_dep_employed_count), cd_dep_college_count, Count(*) cnt3, Stddev_samp(cd_dep_college_count), Avg(cd_dep_college_count), Max(cd_dep_college_count) FROM mtpcds.data.customer c, mtpcds.data.customer_address ca, mtpcds.data.customer_demographics WHERE c.c_current_addr_sk = ca.ca_address_sk AND cd_demo_sk = c.c_current_cdemo_sk AND EXISTS (SELECT * FROM mtpcds.data.store_sales, mtpcds.data.date_dim WHERE c.c_customer_sk = ss_customer_sk AND ss_sold_date_sk = d_date_sk AND d_year = 2001 AND d_qoy < 4) AND ( EXISTS (SELECT * FROM mtpcds.data.web_sales, mtpcds.data.date_dim WHERE c.c_customer_sk = ws_bill_customer_sk AND ws_sold_date_sk = d_date_sk AND d_year = 2001 AND d_qoy < 4) OR EXISTS (SELECT * FROM mtpcds.data.catalog_sales, mtpcds.data.date_dim WHERE c.c_customer_sk = cs_ship_customer_sk AND cs_sold_date_sk = d_date_sk AND d_year = 2001 AND d_qoy < 4) ) GROUP BY ca_state, cd_gender, cd_marital_status, cd_dep_count, cd_dep_employed_count, cd_dep_college_count ORDER BY ca_state, cd_gender, cd_marital_status, cd_dep_count, cd_dep_employed_count, cd_dep_college_count LIMIT 100;",
+        "runquantity": 915,
+        "executiontime": 10
+      }
+    ]
+  },
+  "output": {
+    "ddl": [
+      {
+        "statement": "CREATE SCHEMA IF NOT EXISTS default_catalog.optimized"
+      },
+      {
+        "statement": "CREATE TABLE default_catalog.optimized.call_center (\n  cc_call_center_sk BIGINT,\n  cc_call_center_id VARCHAR,\n  cc_rec_start_date DATE,\n  cc_rec_end_date DATE,\n  cc_closed_date_sk INTEGER,\n  cc_open_date_sk INTEGER,\n  cc_name VARCHAR,\n  cc_class VARCHAR,\n  cc_employees INTEGER,\n  cc_sq_ft INTEGER,\n  cc_hours VARCHAR,\n  cc_manager VARCHAR,\n  cc_mkt_id INTEGER,\n  cc_mkt_class VARCHAR,\n  cc_mkt_desc VARCHAR,\n  cc_market_manager VARCHAR,\n  cc_division INTEGER,\n  cc_division_name VARCHAR,\n  cc_company INTEGER,\n  cc_company_name VARCHAR,\n  cc_street_number VARCHAR,\n  cc_street_name VARCHAR,\n  cc_street_type VARCHAR,\n  cc_suite_number VARCHAR,\n  cc_city VARCHAR,\n  cc_county VARCHAR,\n  cc_state VARCHAR,\n  cc_zip VARCHAR,\n  cc_country VARCHAR,\n  cc_gmt_offset DECIMAL(5, 2),\n  cc_tax_percentage DECIMAL(5, 2)\n) WITH (\n  format = 'ICEBERG',\n  partitioning = ARRAY['cc_rec_start_date', 'cc_rec_end_date'],\n  clustering = ARRAY['cc_call_center_id', 'cc_mkt_id', 'cc_street_type'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE default_catalog.optimized.catalog_page (\n  cp_catalog_page_sk BIGINT,\n  cp_catalog_page_id VARCHAR,\n  cp_start_date_sk INTEGER,\n  cp_end_date_sk INTEGER,\n  cp_department VARCHAR,\n  cp_catalog_number INTEGER,\n  cp_catalog_page_number INTEGER,\n  cp_description VARCHAR,\n  cp_type VARCHAR\n) WITH (\n  format = 'ICEBERG',\n  clustering = ARRAY['cp_catalog_page_id', 'cp_type'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE default_catalog.optimized.catalog_returns (\n  cr_returned_date_sk BIGINT,\n  cr_returned_time_sk BIGINT,\n  cr_item_sk BIGINT,\n  cr_refunded_customer_sk BIGINT,\n  cr_refunded_cdemo_sk BIGINT,\n  cr_refunded_hdemo_sk BIGINT,\n  cr_refunded_addr_sk BIGINT,\n  cr_returning_customer_sk BIGINT,\n  cr_returning_cdemo_sk BIGINT,\n  cr_returning_hdemo_sk BIGINT,\n  cr_returning_addr_sk BIGINT,\n  cr_call_center_sk BIGINT,\n  cr_catalog_page_sk BIGINT,\n  cr_ship_mode_sk BIGINT,\n  cr_warehouse_sk BIGINT,\n  cr_reason_sk BIGINT,\n  cr_order_number BIGINT,\n  cr_return_quantity INTEGER,\n  cr_return_amount DECIMAL(7, 2),\n  cr_return_tax DECIMAL(7, 2),\n  cr_return_amt_inc_tax DECIMAL(7, 2),\n  cr_fee DECIMAL(7, 2),\n  cr_return_ship_cost DECIMAL(7, 2),\n  cr_refunded_cash DECIMAL(7, 2),\n  cr_reversed_charge DECIMAL(7, 2),\n  cr_store_credit DECIMAL(7, 2),\n  cr_net_loss DECIMAL(7, 2)\n) WITH (\n  format = 'ICEBERG',\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE default_catalog.optimized.catalog_sales (\n  cs_sold_date_sk BIGINT,\n  cs_sold_time_sk BIGINT,\n  cs_ship_date_sk BIGINT,\n  cs_bill_customer_sk BIGINT,\n  cs_bill_cdemo_sk BIGINT,\n  cs_bill_hdemo_sk BIGINT,\n  cs_bill_addr_sk BIGINT,\n  cs_ship_customer_sk BIGINT,\n  cs_ship_cdemo_sk BIGINT,\n  cs_ship_hdemo_sk BIGINT,\n  cs_ship_addr_sk BIGINT,\n  cs_call_center_sk BIGINT,\n  cs_catalog_page_sk BIGINT,\n  cs_ship_mode_sk BIGINT,\n  cs_warehouse_sk BIGINT,\n  cs_item_sk BIGINT,\n  cs_promo_sk BIGINT,\n  cs_order_number BIGINT,\n  cs_quantity INTEGER,\n  cs_wholesale_cost DECIMAL(7, 2),\n  cs_list_price DECIMAL(7, 2),\n  cs_sales_price DECIMAL(7, 2),\n  cs_ext_discount_amt DECIMAL(7, 2),\n  cs_ext_sales_price DECIMAL(7, 2),\n  cs_ext_wholesale_cost DECIMAL(7, 2),\n  cs_ext_list_price DECIMAL(7, 2),\n  cs_ext_tax DECIMAL(7, 2),\n  cs_coupon_amt DECIMAL(7, 2),\n  cs_ext_ship_cost DECIMAL(7, 2),\n  cs_net_paid DECIMAL(7, 2),\n  cs_net_paid_inc_tax DECIMAL(7, 2),\n  cs_net_paid_inc_ship DECIMAL(7, 2),\n  cs_net_paid_inc_ship_tax DECIMAL(7, 2),\n  cs_net_profit DECIMAL(7, 2)\n) WITH (\n  format = 'ICEBERG',\n  clustering = ARRAY['cs_net_paid', 'cs_net_paid_inc_tax', 'cs_net_paid_inc_ship', 'cs_net_paid_inc_ship_tax'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE default_catalog.optimized.customer (\n  c_customer_sk BIGINT,\n  c_customer_id VARCHAR,\n  c_current_cdemo_sk BIGINT,\n  c_current_hdemo_sk BIGINT,\n  c_current_addr_sk BIGINT,\n  c_first_shipto_date_sk BIGINT,\n  c_first_sales_date_sk BIGINT,\n  c_salutation VARCHAR,\n  c_first_name VARCHAR,\n  c_last_name VARCHAR,\n  c_preferred_cust_flag VARCHAR,\n  c_birth_day INTEGER,\n  c_birth_month INTEGER,\n  c_birth_year INTEGER,\n  c_birth_country VARCHAR,\n  c_login VARCHAR,\n  c_email_address VARCHAR,\n  c_last_review_date_sk BIGINT\n) WITH (\n  format = 'ICEBERG',\n  clustering = ARRAY['c_customer_id'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE default_catalog.optimized.customer_address (\n  ca_address_sk BIGINT,\n  ca_address_id VARCHAR,\n  ca_street_number VARCHAR,\n  ca_street_name VARCHAR,\n  ca_street_type VARCHAR,\n  ca_suite_number VARCHAR,\n  ca_city VARCHAR,\n  ca_county VARCHAR,\n  ca_state VARCHAR,\n  ca_zip VARCHAR,\n  ca_country VARCHAR,\n  ca_gmt_offset DECIMAL(5, 2),\n  ca_location_type VARCHAR\n) WITH (\n  format = 'ICEBERG',\n  clustering = ARRAY['ca_address_id', 'ca_street_type', 'ca_location_type'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE default_catalog.optimized.customer_demographics (\n  cd_demo_sk BIGINT,\n  cd_gender VARCHAR,\n  cd_marital_status VARCHAR,\n  cd_education_status VARCHAR,\n  cd_purchase_estimate INTEGER,\n  cd_credit_rating VARCHAR,\n  cd_dep_count INTEGER,\n  cd_dep_employed_count INTEGER,\n  cd_dep_college_count INTEGER\n) WITH (\n  format = 'ICEBERG',\n  clustering = ARRAY['cd_marital_status', 'cd_education_status'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE default_catalog.optimized.date_dim (\n  d_date_sk BIGINT,\n  d_date_id VARCHAR,\n  d_date DATE,\n  d_month_seq INTEGER,\n  d_week_seq INTEGER,\n  d_quarter_seq INTEGER,\n  d_year INTEGER,\n  d_dow INTEGER,\n  d_moy INTEGER,\n  d_dom INTEGER,\n  d_qoy INTEGER,\n  d_fy_year INTEGER,\n  d_fy_quarter_seq INTEGER,\n  d_fy_week_seq INTEGER,\n  d_day_name VARCHAR,\n  d_quarter_name VARCHAR,\n  d_holiday VARCHAR,\n  d_weekend VARCHAR,\n  d_following_holiday VARCHAR,\n  d_first_dom INTEGER,\n  d_last_dom INTEGER,\n  d_same_day_ly INTEGER,\n  d_same_day_lq INTEGER,\n  d_current_day VARCHAR,\n  d_current_week VARCHAR,\n  d_current_month VARCHAR,\n  d_current_quarter VARCHAR,\n  d_current_year VARCHAR\n) WITH (\n  format = 'ICEBERG',\n  partitioning = ARRAY['d_date'],\n  clustering = ARRAY['d_date_id', 'd_holiday', 'd_following_holiday'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE default_catalog.optimized.dbgen_version (\n  dv_version VARCHAR,\n  dv_create_date DATE,\n  dv_create_time TIME(6),\n  dv_cmdline_args VARCHAR\n) WITH (\n  format = 'ICEBERG',\n  partitioning = ARRAY['dv_create_date', 'dv_create_time'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE default_catalog.optimized.household_demographics (\n  hd_demo_sk BIGINT,\n  hd_income_band_sk BIGINT,\n  hd_buy_potential VARCHAR,\n  hd_dep_count INTEGER,\n  hd_vehicle_count INTEGER\n) WITH (\n  format = 'ICEBERG',\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE default_catalog.optimized.income_band (\n  ib_income_band_sk BIGINT,\n  ib_lower_bound INTEGER,\n  ib_upper_bound INTEGER\n) WITH (\n  format = 'ICEBERG',\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE default_catalog.optimized.inventory (\n  inv_date_sk BIGINT,\n  inv_item_sk BIGINT,\n  inv_warehouse_sk BIGINT,\n  inv_quantity_on_hand INTEGER\n) WITH (\n  format = 'ICEBERG',\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE default_catalog.optimized.item (\n  i_item_sk BIGINT,\n  i_item_id VARCHAR,\n  i_rec_start_date DATE,\n  i_rec_end_date DATE,\n  i_item_desc VARCHAR,\n  i_current_price DECIMAL(7, 2),\n  i_wholesale_cost DECIMAL(7, 2),\n  i_brand_id INTEGER,\n  i_brand VARCHAR,\n  i_class_id INTEGER,\n  i_class VARCHAR,\n  i_category_id INTEGER,\n  i_category VARCHAR,\n  i_manufact_id INTEGER,\n  i_manufact VARCHAR,\n  i_size VARCHAR,\n  i_formulation VARCHAR,\n  i_color VARCHAR,\n  i_units VARCHAR,\n  i_container VARCHAR,\n  i_manager_id INTEGER,\n  i_product_name VARCHAR\n) WITH (\n  format = 'ICEBERG',\n  partitioning = ARRAY['i_rec_start_date', 'i_rec_end_date'],\n  clustering = ARRAY['i_item_id', 'i_brand_id', 'i_class_id', 'i_category_id'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE default_catalog.optimized.promotion (\n  p_promo_sk BIGINT,\n  p_promo_id VARCHAR,\n  p_start_date_sk BIGINT,\n  p_end_date_sk BIGINT,\n  p_item_sk BIGINT,\n  p_cost DECIMAL(15, 2),\n  p_response_targe INTEGER,\n  p_promo_name VARCHAR,\n  p_channel_dmail VARCHAR,\n  p_channel_email VARCHAR,\n  p_channel_catalog VARCHAR,\n  p_channel_tv VARCHAR,\n  p_channel_radio VARCHAR,\n  p_channel_press VARCHAR,\n  p_channel_event VARCHAR,\n  p_channel_demo VARCHAR,\n  p_channel_details VARCHAR,\n  p_purpose VARCHAR,\n  p_discount_active VARCHAR\n) WITH (\n  format = 'ICEBERG',\n  clustering = ARRAY['p_promo_id'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE default_catalog.optimized.reason (\n  r_reason_sk BIGINT,\n  r_reason_id VARCHAR,\n  r_reason_desc VARCHAR\n) WITH (\n  format = 'ICEBERG',\n  clustering = ARRAY['r_reason_id'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE default_catalog.optimized.ship_mode (\n  sm_ship_mode_sk BIGINT,\n  sm_ship_mode_id VARCHAR,\n  sm_type VARCHAR,\n  sm_code VARCHAR,\n  sm_carrier VARCHAR,\n  sm_contract VARCHAR\n) WITH (\n  format = 'ICEBERG',\n  clustering = ARRAY['sm_ship_mode_id', 'sm_type', 'sm_code'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE default_catalog.optimized.store (\n  s_store_sk BIGINT,\n  s_store_id VARCHAR,\n  s_rec_start_date DATE,\n  s_rec_end_date DATE,\n  s_closed_date_sk BIGINT,\n  s_store_name VARCHAR,\n  s_number_employees INTEGER,\n  s_floor_space INTEGER,\n  s_hours VARCHAR,\n  s_manager VARCHAR,\n  s_market_id INTEGER,\n  s_geography_class VARCHAR,\n  s_market_desc VARCHAR,\n  s_market_manager VARCHAR,\n  s_division_id INTEGER,\n  s_division_name VARCHAR,\n  s_company_id INTEGER,\n  s_company_name VARCHAR,\n  s_street_number VARCHAR,\n  s_street_name VARCHAR,\n  s_street_type VARCHAR,\n  s_suite_number VARCHAR,\n  s_city VARCHAR,\n  s_county VARCHAR,\n  s_state VARCHAR,\n  s_zip VARCHAR,\n  s_country VARCHAR,\n  s_gmt_offset DECIMAL(5, 2),\n  s_tax_precentage DECIMAL(5, 2)\n) WITH (\n  format = 'ICEBERG',\n  partitioning = ARRAY['s_rec_start_date', 's_rec_end_date'],\n  clustering = ARRAY['s_store_id', 's_market_id', 's_division_id', 's_company_id'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE default_catalog.optimized.store_returns (\n  sr_returned_date_sk BIGINT,\n  sr_return_time_sk BIGINT,\n  sr_item_sk BIGINT,\n  sr_customer_sk BIGINT,\n  sr_cdemo_sk BIGINT,\n  sr_hdemo_sk BIGINT,\n  sr_addr_sk BIGINT,\n  sr_store_sk BIGINT,\n  sr_reason_sk BIGINT,\n  sr_ticket_number BIGINT,\n  sr_return_quantity INTEGER,\n  sr_return_amt DECIMAL(7, 2),\n  sr_return_tax DECIMAL(7, 2),\n  sr_return_amt_inc_tax DECIMAL(7, 2),\n  sr_fee DECIMAL(7, 2),\n  sr_return_ship_cost DECIMAL(7, 2),\n  sr_refunded_cash DECIMAL(7, 2),\n  sr_reversed_charge DECIMAL(7, 2),\n  sr_store_credit DECIMAL(7, 2),\n  sr_net_loss DECIMAL(7, 2)\n) WITH (\n  format = 'ICEBERG',\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE default_catalog.optimized.store_sales (\n  ss_sold_date_sk BIGINT,\n  ss_sold_time_sk BIGINT,\n  ss_item_sk BIGINT,\n  ss_customer_sk BIGINT,\n  ss_cdemo_sk BIGINT,\n  ss_hdemo_sk BIGINT,\n  ss_addr_sk BIGINT,\n  ss_store_sk BIGINT,\n  ss_promo_sk BIGINT,\n  ss_ticket_number BIGINT,\n  ss_quantity INTEGER,\n  ss_wholesale_cost DECIMAL(7, 2),\n  ss_list_price DECIMAL(7, 2),\n  ss_sales_price DECIMAL(7, 2),\n  ss_ext_discount_amt DECIMAL(7, 2),\n  ss_ext_sales_price DECIMAL(7, 2),\n  ss_ext_wholesale_cost DECIMAL(7, 2),\n  ss_ext_list_price DECIMAL(7, 2),\n  ss_ext_tax DECIMAL(7, 2),\n  ss_coupon_amt DECIMAL(7, 2),\n  ss_net_paid DECIMAL(7, 2),\n  ss_net_paid_inc_tax DECIMAL(7, 2),\n  ss_net_profit DECIMAL(7, 2)\n) WITH (\n  format = 'ICEBERG',\n  clustering = ARRAY['ss_net_paid', 'ss_net_paid_inc_tax'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE default_catalog.optimized.time_dim (\n  t_time_sk BIGINT,\n  t_time_id VARCHAR,\n  t_time INTEGER,\n  t_hour INTEGER,\n  t_minute INTEGER,\n  t_second INTEGER,\n  t_am_pm VARCHAR,\n  t_shift VARCHAR,\n  t_sub_shift VARCHAR,\n  t_meal_time VARCHAR\n) WITH (\n  format = 'ICEBERG',\n  clustering = ARRAY['t_time_id'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE default_catalog.optimized.warehouse (\n  w_warehouse_sk BIGINT,\n  w_warehouse_id VARCHAR,\n  w_warehouse_name VARCHAR,\n  w_warehouse_sq_ft INTEGER,\n  w_street_number VARCHAR,\n  w_street_name VARCHAR,\n  w_street_type VARCHAR,\n  w_suite_number VARCHAR,\n  w_city VARCHAR,\n  w_county VARCHAR,\n  w_state VARCHAR,\n  w_zip VARCHAR,\n  w_country VARCHAR,\n  w_gmt_offset DECIMAL(5, 2)\n) WITH (\n  format = 'ICEBERG',\n  clustering = ARRAY['w_warehouse_id', 'w_street_type'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE default_catalog.optimized.web_page (\n  wp_web_page_sk BIGINT,\n  wp_web_page_id VARCHAR,\n  wp_rec_start_date DATE,\n  wp_rec_end_date DATE,\n  wp_creation_date_sk BIGINT,\n  wp_access_date_sk BIGINT,\n  wp_autogen_flag VARCHAR,\n  wp_customer_sk BIGINT,\n  wp_url VARCHAR,\n  wp_type VARCHAR,\n  wp_char_count INTEGER,\n  wp_link_count INTEGER,\n  wp_image_count INTEGER,\n  wp_max_ad_count INTEGER\n) WITH (\n  format = 'ICEBERG',\n  partitioning = ARRAY['wp_rec_start_date', 'wp_rec_end_date'],\n  clustering = ARRAY['wp_web_page_id', 'wp_type'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE default_catalog.optimized.web_returns (\n  wr_returned_date_sk BIGINT,\n  wr_returned_time_sk BIGINT,\n  wr_item_sk BIGINT,\n  wr_refunded_customer_sk BIGINT,\n  wr_refunded_cdemo_sk BIGINT,\n  wr_refunded_hdemo_sk BIGINT,\n  wr_refunded_addr_sk BIGINT,\n  wr_returning_customer_sk BIGINT,\n  wr_returning_cdemo_sk BIGINT,\n  wr_returning_hdemo_sk BIGINT,\n  wr_returning_addr_sk BIGINT,\n  wr_web_page_sk BIGINT,\n  wr_reason_sk BIGINT,\n  wr_order_number BIGINT,\n  wr_return_quantity INTEGER,\n  wr_return_amt DECIMAL(7, 2),\n  wr_return_tax DECIMAL(7, 2),\n  wr_return_amt_inc_tax DECIMAL(7, 2),\n  wr_fee DECIMAL(7, 2),\n  wr_return_ship_cost DECIMAL(7, 2),\n  wr_refunded_cash DECIMAL(7, 2),\n  wr_reversed_charge DECIMAL(7, 2),\n  wr_account_credit DECIMAL(7, 2),\n  wr_net_loss DECIMAL(7, 2)\n) WITH (\n  format = 'ICEBERG',\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE default_catalog.optimized.web_sales (\n  ws_sold_date_sk BIGINT,\n  ws_sold_time_sk BIGINT,\n  ws_ship_date_sk BIGINT,\n  ws_item_sk BIGINT,\n  ws_bill_customer_sk BIGINT,\n  ws_bill_cdemo_sk BIGINT,\n  ws_bill_hdemo_sk BIGINT,\n  ws_bill_addr_sk BIGINT,\n  ws_ship_customer_sk BIGINT,\n  ws_ship_cdemo_sk BIGINT,\n  ws_ship_hdemo_sk BIGINT,\n  ws_ship_addr_sk BIGINT,\n  ws_web_page_sk BIGINT,\n  ws_web_site_sk BIGINT,\n  ws_ship_mode_sk BIGINT,\n  ws_warehouse_sk BIGINT,\n  ws_promo_sk BIGINT,\n  ws_order_number BIGINT,\n  ws_quantity INTEGER,\n  ws_wholesale_cost DECIMAL(7, 2),\n  ws_list_price DECIMAL(7, 2),\n  ws_sales_price DECIMAL(7, 2),\n  ws_ext_discount_amt DECIMAL(7, 2),\n  ws_ext_sales_price DECIMAL(7, 2),\n  ws_ext_wholesale_cost DECIMAL(7, 2),\n  ws_ext_list_price DECIMAL(7, 2),\n  ws_ext_tax DECIMAL(7, 2),\n  ws_coupon_amt DECIMAL(7, 2),\n  ws_ext_ship_cost DECIMAL(7, 2),\n  ws_net_paid DECIMAL(7, 2),\n  ws_net_paid_inc_tax DECIMAL(7, 2),\n  ws_net_paid_inc_ship DECIMAL(7, 2),\n  ws_net_paid_inc_ship_tax DECIMAL(7, 2),\n  ws_net_profit DECIMAL(7, 2)\n) WITH (\n  format = 'ICEBERG',\n  clustering = ARRAY['ws_net_paid', 'ws_net_paid_inc_tax', 'ws_net_paid_inc_ship', 'ws_net_paid_inc_ship_tax'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      },
+      {
+        "statement": "CREATE TABLE default_catalog.optimized.web_site (\n  web_site_sk BIGINT,\n  web_site_id VARCHAR,\n  web_rec_start_date DATE,\n  web_rec_end_date DATE,\n  web_name VARCHAR,\n  web_open_date_sk BIGINT,\n  web_close_date_sk BIGINT,\n  web_class VARCHAR,\n  web_manager VARCHAR,\n  web_mkt_id INTEGER,\n  web_mkt_class VARCHAR,\n  web_mkt_desc VARCHAR,\n  web_market_manager VARCHAR,\n  web_company_id INTEGER,\n  web_company_name VARCHAR,\n  web_street_number VARCHAR,\n  web_street_name VARCHAR,\n  web_street_type VARCHAR,\n  web_suite_number VARCHAR,\n  web_city VARCHAR,\n  web_county VARCHAR,\n  web_state VARCHAR,\n  web_zip VARCHAR,\n  web_country VARCHAR,\n  web_gmt_offset DECIMAL(5, 2),\n  web_tax_percentage DECIMAL(5, 2)\n) WITH (\n  format = 'ICEBERG',\n  partitioning = ARRAY['web_rec_start_date', 'web_rec_end_date'],\n  clustering = ARRAY['web_site_id', 'web_mkt_id', 'web_company_id', 'web_street_type'],\n  'write.compression-codec' = 'ZSTD',\n  'write.target-file-size-bytes' = '268435456',\n  'read.vectorization.enabled' = 'true',\n  'write.parquet.compression-codec' = 'ZSTD',\n  'write.parquet.page-size-bytes' = '1048576',\n  'write.parquet.row-group-size-bytes' = '134217728'\n)"
+      }
+    ],
+    "migrations": [
+      {
+        "statement": "INSERT INTO default_catalog.optimized.call_center SELECT * FROM mtpcds.data.call_center"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM default_catalog.optimized.call_center"
+      },
+      {
+        "statement": "INSERT INTO default_catalog.optimized.catalog_page SELECT * FROM mtpcds.data.catalog_page"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM default_catalog.optimized.catalog_page"
+      },
+      {
+        "statement": "INSERT INTO default_catalog.optimized.catalog_returns SELECT * FROM mtpcds.data.catalog_returns"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM default_catalog.optimized.catalog_returns"
+      },
+      {
+        "statement": "INSERT INTO default_catalog.optimized.catalog_sales SELECT * FROM mtpcds.data.catalog_sales"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM default_catalog.optimized.catalog_sales"
+      },
+      {
+        "statement": "INSERT INTO default_catalog.optimized.customer SELECT * FROM mtpcds.data.customer"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM default_catalog.optimized.customer"
+      },
+      {
+        "statement": "INSERT INTO default_catalog.optimized.customer_address SELECT * FROM mtpcds.data.customer_address"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM default_catalog.optimized.customer_address"
+      },
+      {
+        "statement": "INSERT INTO default_catalog.optimized.customer_demographics SELECT * FROM mtpcds.data.customer_demographics"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM default_catalog.optimized.customer_demographics"
+      },
+      {
+        "statement": "INSERT INTO default_catalog.optimized.date_dim SELECT * FROM mtpcds.data.date_dim"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM default_catalog.optimized.date_dim"
+      },
+      {
+        "statement": "INSERT INTO default_catalog.optimized.dbgen_version SELECT * FROM mtpcds.data.dbgen_version"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM default_catalog.optimized.dbgen_version"
+      },
+      {
+        "statement": "INSERT INTO default_catalog.optimized.household_demographics SELECT * FROM mtpcds.data.household_demographics"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM default_catalog.optimized.household_demographics"
+      },
+      {
+        "statement": "INSERT INTO default_catalog.optimized.income_band SELECT * FROM mtpcds.data.income_band"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM default_catalog.optimized.income_band"
+      },
+      {
+        "statement": "INSERT INTO default_catalog.optimized.inventory SELECT * FROM mtpcds.data.inventory"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM default_catalog.optimized.inventory"
+      },
+      {
+        "statement": "INSERT INTO default_catalog.optimized.item SELECT * FROM mtpcds.data.item"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM default_catalog.optimized.item"
+      },
+      {
+        "statement": "INSERT INTO default_catalog.optimized.promotion SELECT * FROM mtpcds.data.promotion"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM default_catalog.optimized.promotion"
+      },
+      {
+        "statement": "INSERT INTO default_catalog.optimized.reason SELECT * FROM mtpcds.data.reason"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM default_catalog.optimized.reason"
+      },
+      {
+        "statement": "INSERT INTO default_catalog.optimized.ship_mode SELECT * FROM mtpcds.data.ship_mode"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM default_catalog.optimized.ship_mode"
+      },
+      {
+        "statement": "INSERT INTO default_catalog.optimized.store SELECT * FROM mtpcds.data.store"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM default_catalog.optimized.store"
+      },
+      {
+        "statement": "INSERT INTO default_catalog.optimized.store_returns SELECT * FROM mtpcds.data.store_returns"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM default_catalog.optimized.store_returns"
+      },
+      {
+        "statement": "INSERT INTO default_catalog.optimized.store_sales SELECT * FROM mtpcds.data.store_sales"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM default_catalog.optimized.store_sales"
+      },
+      {
+        "statement": "INSERT INTO default_catalog.optimized.time_dim SELECT * FROM mtpcds.data.time_dim"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM default_catalog.optimized.time_dim"
+      },
+      {
+        "statement": "INSERT INTO default_catalog.optimized.warehouse SELECT * FROM mtpcds.data.warehouse"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM default_catalog.optimized.warehouse"
+      },
+      {
+        "statement": "INSERT INTO default_catalog.optimized.web_page SELECT * FROM mtpcds.data.web_page"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM default_catalog.optimized.web_page"
+      },
+      {
+        "statement": "INSERT INTO default_catalog.optimized.web_returns SELECT * FROM mtpcds.data.web_returns"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM default_catalog.optimized.web_returns"
+      },
+      {
+        "statement": "INSERT INTO default_catalog.optimized.web_sales SELECT * FROM mtpcds.data.web_sales"
+      },
+      {
+        "statement": "SELECT COUNT(*) as validation FROM default_catalog.optimized.web_sales"
+      }
+    ],
+    "queries": [
+      {
+        "queryid": "96c93781-81b6-4e57-9248-71f4f7ea6383",
+        "query": "SELECT i_product_name, i_brand, i_class, i_category, AVG(inv_quantity_on_hand) AS qoh FROM default_catalog.optimized.inventory, default_catalog.optimized.date_dim, default_catalog.optimized.item, default_catalog.optimized.warehouse WHERE inv_date_sk = d_date_sk AND inv_item_sk = i_item_sk AND inv_warehouse_sk = w_warehouse_sk AND d_month_seq BETWEEN 1205 AND 1205 + 11 GROUP BY ROLLUP (i_product_name, i_brand, i_class, i_category) ORDER BY qoh, i_product_name, i_brand, i_class, i_category LIMIT 100"
+      },
+      {
+        "queryid": "de49c63d-a7f3-4f45-8df1-1b188438910d",
+        "query": "SELECT i_brand_id AS brand_id, i_brand AS brand, i_manufact_id, i_manufact, SUM(ss_ext_sales_price) AS ext_price FROM default_catalog.optimized.date_dim, default_catalog.optimized.store_sales, default_catalog.optimized.item, default_catalog.optimized.customer, default_catalog.optimized.customer_address, default_catalog.optimized.store WHERE d_date_sk = ss_sold_date_sk AND ss_item_sk = i_item_sk AND i_manager_id = 38 AND d_moy = 12 AND d_year = 1998 AND ss_customer_sk = c_customer_sk AND c_current_addr_sk = ca_address_sk AND SUBSTRING(ca_zip, 1, 5) <> SUBSTRING(s_zip, 1, 5) AND ss_store_sk = s_store_sk GROUP BY i_brand, i_brand_id, i_manufact_id, i_manufact ORDER BY ext_price DESC, i_brand, i_brand_id, i_manufact_id, i_manufact LIMIT 100"
+      },
+      {
+        "queryid": "7de27eab-cf58-4658-ad6f-3727273baf72",
+        "query": "SELECT AVG(ss_quantity), AVG(ss_ext_sales_price), AVG(ss_ext_wholesale_cost), SUM(ss_ext_wholesale_cost) FROM default_catalog.optimized.store_sales, default_catalog.optimized.store, default_catalog.optimized.customer_demographics, default_catalog.optimized.household_demographics, default_catalog.optimized.customer_address, default_catalog.optimized.date_dim WHERE s_store_sk = ss_store_sk AND ss_sold_date_sk = d_date_sk AND d_year = 2001 AND ((ss_hdemo_sk = hd_demo_sk AND cd_demo_sk = ss_cdemo_sk AND cd_marital_status = 'U' AND cd_education_status = 'Advanced Degree' AND ss_sales_price BETWEEN 100.00 AND 150.00 AND hd_dep_count = 3) OR (ss_hdemo_sk = hd_demo_sk AND cd_demo_sk = ss_cdemo_sk AND cd_marital_status = 'M' AND cd_education_status = 'Primary' AND ss_sales_price BETWEEN 50.00 AND 100.00 AND hd_dep_count = 1) OR (ss_hdemo_sk = hd_demo_sk AND cd_demo_sk = ss_cdemo_sk AND cd_marital_status = 'D' AND cd_education_status = 'Secondary' AND ss_sales_price BETWEEN 150.00 AND 200.00 AND hd_dep_count = 1)) AND ((ss_addr_sk = ca_address_sk AND ca_country = 'United States' AND ca_state IN ('AZ', 'NE', 'IA') AND ss_net_profit BETWEEN 100 AND 200) OR (ss_addr_sk = ca_address_sk AND ca_country = 'United States' AND ca_state IN ('MS', 'CA', 'NV') AND ss_net_profit BETWEEN 150 AND 300) OR (ss_addr_sk = ca_address_sk AND ca_country = 'United States' AND ca_state IN ('GA', 'TX', 'NJ') AND ss_net_profit BETWEEN 50 AND 250))"
+      },
+      {
+        "queryid": "54d87f33-a883-4dc8-9d5f-1e90d957b91f",
+        "query": "SELECT i_item_id, i_item_desc, s_state, COUNT(ss_quantity) AS store_sales_quantitycount, AVG(ss_quantity) AS store_sales_quantityave, STDDEV_SAMP(ss_quantity) AS store_sales_quantitystdev, STDDEV_SAMP(ss_quantity) / AVG(ss_quantity) AS store_sales_quantitycov, COUNT(sr_return_quantity) AS store_returns_quantitycount, AVG(sr_return_quantity) AS store_returns_quantityave, STDDEV_SAMP(sr_return_quantity) AS store_returns_quantitystdev, STDDEV_SAMP(sr_return_quantity) / AVG(sr_return_quantity) AS store_returns_quantitycov, COUNT(cs_quantity) AS catalog_sales_quantitycount, AVG(cs_quantity) AS catalog_sales_quantityave, STDDEV_SAMP(cs_quantity) / AVG(cs_quantity) AS catalog_sales_quantitystdev, STDDEV_SAMP(cs_quantity) / AVG(cs_quantity) AS catalog_sales_quantitycov FROM default_catalog.optimized.store_sales, default_catalog.optimized.store_returns, default_catalog.optimized.catalog_sales, default_catalog.optimized.date_dim AS d1, default_catalog.optimized.date_dim AS d2, default_catalog.optimized.date_dim AS d3, default_catalog.optimized.store, default_catalog.optimized.item WHERE d1.d_quarter_name = '1999Q1' AND d1.d_date_sk = ss_sold_date_sk AND i_item_sk = ss_item_sk AND s_store_sk = ss_store_sk AND ss_customer_sk = sr_customer_sk AND ss_item_sk = sr_item_sk AND ss_ticket_number = sr_ticket_number AND sr_returned_date_sk = d2.d_date_sk AND d2.d_quarter_name IN ('1999Q1', '1999Q2', '1999Q3') AND sr_customer_sk = cs_bill_customer_sk AND sr_item_sk = cs_item_sk AND cs_sold_date_sk = d3.d_date_sk AND d3.d_quarter_name IN ('1999Q1', '1999Q2', '1999Q3') GROUP BY i_item_id, i_item_desc, s_state ORDER BY i_item_id, i_item_desc, s_state LIMIT 100"
+      },
+      {
+        "queryid": "e21f4774-fc6c-4d18-84a4-2645a4ccc7d1",
+        "query": "SELECT i_item_id, i_item_desc, s_state, COUNT(ss_quantity) AS store_sales_quantitycount, AVG(ss_quantity) AS store_sales_quantityave, STDDEV_SAMP(ss_quantity) AS store_sales_quantitystdev, STDDEV_SAMP(ss_quantity) / AVG(ss_quantity) AS store_sales_quantitycov, COUNT(sr_return_quantity) AS store_returns_quantitycount, AVG(sr_return_quantity) AS store_returns_quantityave, STDDEV_SAMP(sr_return_quantity) AS store_returns_quantitystdev, STDDEV_SAMP(sr_return_quantity) / AVG(sr_return_quantity) AS store_returns_quantitycov, COUNT(cs_quantity) AS catalog_sales_quantitycount, AVG(cs_quantity) AS catalog_sales_quantityave, STDDEV_SAMP(cs_quantity) / AVG(cs_quantity) AS catalog_sales_quantitystdev, STDDEV_SAMP(cs_quantity) / AVG(cs_quantity) AS catalog_sales_quantitycov FROM default_catalog.optimized.store_sales, default_catalog.optimized.store_returns, default_catalog.optimized.catalog_sales, default_catalog.optimized.date_dim AS d1, default_catalog.optimized.date_dim AS d2, default_catalog.optimized.date_dim AS d3, default_catalog.optimized.store, default_catalog.optimized.item WHERE d1.d_quarter_name = '1999Q1' AND d1.d_date_sk = ss_sold_date_sk AND i_item_sk = ss_item_sk AND s_store_sk = ss_store_sk AND ss_customer_sk = sr_customer_sk AND ss_item_sk = sr_item_sk AND ss_ticket_number = sr_ticket_number AND sr_returned_date_sk = d2.d_date_sk AND d2.d_quarter_name IN ('1999Q1', '1999Q2', '1999Q3') AND sr_customer_sk = cs_bill_customer_sk AND sr_item_sk = cs_item_sk AND cs_sold_date_sk = d3.d_date_sk AND d3.d_quarter_name IN ('1999Q1', '1999Q2', '1999Q3') GROUP BY i_item_id, i_item_desc, s_state ORDER BY i_item_id, i_item_desc, s_state LIMIT 100"
+      },
+      {
+        "queryid": "b19811e8-d526-4a53-b487-65370dcb4851",
+        "query": "SELECT ca_zip, SUM(cs_sales_price) FROM default_catalog.optimized.catalog_sales, default_catalog.optimized.customer, default_catalog.optimized.customer_address, default_catalog.optimized.date_dim WHERE cs_bill_customer_sk = c_customer_sk AND c_current_addr_sk = ca_address_sk AND (SUBSTRING(ca_zip, 1, 5) IN ('85669', '86197', '88274', '83405', '86475', '85392', '85460', '80348', '81792') OR ca_state IN ('CA', 'WA', 'GA') OR cs_sales_price > 500) AND cs_sold_date_sk = d_date_sk AND d_qoy = 1 AND d_year = 1998 GROUP BY ca_zip ORDER BY ca_zip LIMIT 100"
+      },
+      {
+        "queryid": "4a1d63e5-6532-4cc4-b4c9-b06cb6301a89",
+        "query": "SELECT sr_reason_sk, COUNT(*) AS return_count FROM default_catalog.optimized.store_returns WHERE sr_returned_date_sk IN (SELECT d_date_sk FROM default_catalog.optimized.date_dim WHERE d_year = 2000 AND d_moy = 1) GROUP BY sr_reason_sk ORDER BY sr_reason_sk"
+      },
+      {
+        "queryid": "a088c4eb-626d-4455-b9fb-3eeae8454e02",
+        "query": "WITH year_total AS (SELECT c_customer_id AS customer_id, c_first_name AS customer_first_name, c_last_name AS customer_last_name, c_preferred_cust_flag AS customer_preferred_cust_flag, c_birth_country AS customer_birth_country, c_login AS customer_login, c_email_address AS customer_email_address, d_year AS dyear, SUM(ss_ext_list_price - ss_ext_discount_amt) AS year_total, 's' AS sale_type FROM default_catalog.optimized.customer, default_catalog.optimized.store_sales, default_catalog.optimized.date_dim WHERE c_customer_sk = ss_customer_sk AND ss_sold_date_sk = d_date_sk GROUP BY c_customer_id, c_first_name, c_last_name, c_preferred_cust_flag, c_birth_country, c_login, c_email_address, d_year UNION ALL SELECT c_customer_id AS customer_id, c_first_name AS customer_first_name, c_last_name AS customer_last_name, c_preferred_cust_flag AS customer_preferred_cust_flag, c_birth_country AS customer_birth_country, c_login AS customer_login, c_email_address AS customer_email_address, d_year AS dyear, SUM(ws_ext_list_price - ws_ext_discount_amt) AS year_total, 'w' AS sale_type FROM default_catalog.optimized.customer, default_catalog.optimized.web_sales, default_catalog.optimized.date_dim WHERE c_customer_sk = ws_bill_customer_sk AND ws_sold_date_sk = d_date_sk GROUP BY c_customer_id, c_first_name, c_last_name, c_preferred_cust_flag, c_birth_country, c_login, c_email_address, d_year) SELECT t_s_secyear.customer_id, t_s_secyear.customer_first_name, t_s_secyear.customer_last_name, t_s_secyear.customer_birth_country FROM year_total AS t_s_firstyear, year_total AS t_s_secyear, year_total AS t_w_firstyear, year_total AS t_w_secyear WHERE t_s_secyear.customer_id = t_s_firstyear.customer_id AND t_s_firstyear.customer_id = t_w_secyear.customer_id AND t_s_firstyear.customer_id = t_w_firstyear.customer_id AND t_s_firstyear.sale_type = 's' AND t_w_firstyear.sale_type = 'w' AND t_s_secyear.sale_type = 's' AND t_w_secyear.sale_type = 'w' AND t_s_firstyear.dyear = 2001 AND t_s_secyear.dyear = 2001 + 1 AND t_w_firstyear.dyear = 2001 AND t_w_secyear.dyear = 2001 + 1 AND t_s_firstyear.year_total > 0 AND t_w_firstyear.year_total > 0 AND CASE WHEN t_w_firstyear.year_total > 0 THEN t_w_secyear.year_total / t_w_firstyear.year_total ELSE 0.0 END > CASE WHEN t_s_firstyear.year_total > 0 THEN t_s_secyear.year_total / t_s_firstyear.year_total ELSE 0.0 END ORDER BY t_s_secyear.customer_id, t_s_secyear.customer_first_name, t_s_secyear.customer_last_name, t_s_secyear.customer_birth_country LIMIT 100"
+      },
+      {
+        "queryid": "f29d22e4-cae2-461a-82e6-9cfce435a27a",
+        "query": "SELECT cd_gender, cd_marital_status, cd_education_status, COUNT(*) AS cnt1, cd_purchase_estimate, COUNT(*) AS cnt2, cd_credit_rating, COUNT(*) AS cnt3, cd_dep_count, COUNT(*) AS cnt4, cd_dep_employed_count, COUNT(*) AS cnt5, cd_dep_college_count, COUNT(*) AS cnt6 FROM default_catalog.optimized.customer AS c, default_catalog.optimized.customer_address AS ca, default_catalog.optimized.customer_demographics WHERE c.c_current_addr_sk = ca.ca_address_sk AND ca_county IN ('Lycoming County', 'Sheridan County', 'Kandiyohi County', 'Pike County', 'Greene County') AND cd_demo_sk = c.c_current_cdemo_sk AND EXISTS(SELECT * FROM default_catalog.optimized.store_sales, default_catalog.optimized.date_dim WHERE c.c_customer_sk = ss_customer_sk AND ss_sold_date_sk = d_date_sk AND d_year = 2002 AND d_moy BETWEEN 4 AND 4 + 3) AND (EXISTS(SELECT * FROM default_catalog.optimized.web_sales, default_catalog.optimized.date_dim WHERE c.c_customer_sk = ws_bill_customer_sk AND ws_sold_date_sk = d_date_sk AND d_year = 2002 AND d_moy BETWEEN 4 AND 4 + 3) OR EXISTS(SELECT * FROM default_catalog.optimized.catalog_sales, default_catalog.optimized.date_dim WHERE c.c_customer_sk = cs_ship_customer_sk AND cs_sold_date_sk = d_date_sk AND d_year = 2002 AND d_moy BETWEEN 4 AND 4 + 3)) GROUP BY cd_gender, cd_marital_status, cd_education_status, cd_purchase_estimate, cd_credit_rating, cd_dep_count, cd_dep_employed_count, cd_dep_college_count ORDER BY cd_gender, cd_marital_status, cd_education_status, cd_purchase_estimate, cd_credit_rating, cd_dep_count, cd_dep_employed_count, cd_dep_college_count LIMIT 100"
+      },
+      {
+        "queryid": "d5a3ee08-8e9d-443c-affc-64cac475cf94",
+        "query": "SELECT i_item_id, i_item_desc, s_store_id, s_store_name, MAX(ss_net_profit) AS store_sales_profit, MAX(sr_net_loss) AS store_returns_loss, MAX(cs_net_profit) AS catalog_sales_profit FROM default_catalog.optimized.store_sales, default_catalog.optimized.store_returns, default_catalog.optimized.catalog_sales, default_catalog.optimized.date_dim AS d1, default_catalog.optimized.date_dim AS d2, default_catalog.optimized.date_dim AS d3, default_catalog.optimized.store, default_catalog.optimized.item WHERE d1.d_moy = 4 AND d1.d_year = 2001 AND d1.d_date_sk = ss_sold_date_sk AND i_item_sk = ss_item_sk AND s_store_sk = ss_store_sk AND ss_customer_sk = sr_customer_sk AND ss_item_sk = sr_item_sk AND ss_ticket_number = sr_ticket_number AND sr_returned_date_sk = d2.d_date_sk AND d2.d_moy BETWEEN 4 AND 10 AND d2.d_year = 2001 AND sr_customer_sk = cs_bill_customer_sk AND sr_item_sk = cs_item_sk AND cs_sold_date_sk = d3.d_date_sk AND d3.d_moy BETWEEN 4 AND 10 AND d3.d_year = 2001 GROUP BY i_item_id, i_item_desc, s_store_id, s_store_name ORDER BY i_item_id, i_item_desc, s_store_id, s_store_name LIMIT 100"
+      },
+      {
+        "queryid": "f25bd86c-d10d-49d9-b693-6fdcf7c3bf8a",
+        "query": "SELECT * FROM (SELECT AVG(ss_list_price) AS B1_LP, COUNT(ss_list_price) AS B1_CNT, COUNT(DISTINCT ss_list_price) AS B1_CNTD FROM default_catalog.optimized.store_sales WHERE ss_quantity BETWEEN 0 AND 5 AND (ss_list_price BETWEEN 18 AND 18 + 10 OR ss_coupon_amt BETWEEN 1939 AND 1939 + 1000 OR ss_wholesale_cost BETWEEN 34 AND 34 + 20)) AS B1, (SELECT AVG(ss_list_price) AS B2_LP, COUNT(ss_list_price) AS B2_CNT, COUNT(DISTINCT ss_list_price) AS B2_CNTD FROM default_catalog.optimized.store_sales WHERE ss_quantity BETWEEN 6 AND 10 AND (ss_list_price BETWEEN 1 AND 1 + 10 OR ss_coupon_amt BETWEEN 35 AND 35 + 1000 OR ss_wholesale_cost BETWEEN 50 AND 50 + 20)) AS B2, (SELECT AVG(ss_list_price) AS B3_LP, COUNT(ss_list_price) AS B3_CNT, COUNT(DISTINCT ss_list_price) AS B3_CNTD FROM default_catalog.optimized.store_sales WHERE ss_quantity BETWEEN 11 AND 15 AND (ss_list_price BETWEEN 91 AND 91 + 10 OR ss_coupon_amt BETWEEN 1412 AND 1412 + 1000 OR ss_wholesale_cost BETWEEN 17 AND 17 + 20)) AS B3, (SELECT AVG(ss_list_price) AS B4_LP, COUNT(ss_list_price) AS B4_CNT, COUNT(DISTINCT ss_list_price) AS B4_CNTD FROM default_catalog.optimized.store_sales WHERE ss_quantity BETWEEN 16 AND 20 AND (ss_list_price BETWEEN 9 AND 9 + 10 OR ss_coupon_amt BETWEEN 5270 AND 5270 + 1000 OR ss_wholesale_cost BETWEEN 29 AND 29 + 20)) AS B4, (SELECT AVG(ss_list_price) AS B5_LP, COUNT(ss_list_price) AS B5_CNT, COUNT(DISTINCT ss_list_price) AS B5_CNTD FROM default_catalog.optimized.store_sales WHERE ss_quantity BETWEEN 21 AND 25 AND (ss_list_price BETWEEN 45 AND 45 + 10 OR ss_coupon_amt BETWEEN 826 AND 826 + 1000 OR ss_wholesale_cost BETWEEN 5 AND 5 + 20)) AS B5, (SELECT AVG(ss_list_price) AS B6_LP, COUNT(ss_list_price) AS B6_CNT, COUNT(DISTINCT ss_list_price) AS B6_CNTD FROM default_catalog.optimized.store_sales WHERE ss_quantity BETWEEN 26 AND 30 AND (ss_list_price BETWEEN 174 AND 174 + 10 OR ss_coupon_amt BETWEEN 5548 AND 5548 + 1000 OR ss_wholesale_cost BETWEEN 42 AND 42 + 20)) AS B6 LIMIT 100"
+      },
+      {
+        "queryid": "2fe63281-c159-4cb9-b72e-683fd703664a",
+        "query": "SELECT i_item_id, i_item_desc, s_store_id, s_store_name, AVG(ss_quantity) AS store_sales_quantity, AVG(sr_return_quantity) AS store_returns_quantity, AVG(cs_quantity) AS catalog_sales_quantity FROM default_catalog.optimized.store_sales, default_catalog.optimized.store_returns, default_catalog.optimized.catalog_sales, default_catalog.optimized.date_dim AS d1, default_catalog.optimized.date_dim AS d2, default_catalog.optimized.date_dim AS d3, default_catalog.optimized.store, default_catalog.optimized.item WHERE d1.d_moy = 4 AND d1.d_year = 1998 AND d1.d_date_sk = ss_sold_date_sk AND i_item_sk = ss_item_sk AND s_store_sk = ss_store_sk AND ss_customer_sk = sr_customer_sk AND ss_item_sk = sr_item_sk AND ss_ticket_number = sr_ticket_number AND sr_returned_date_sk = d2.d_date_sk AND d2.d_moy BETWEEN 4 AND 4 + 3 AND d2.d_year = 1998 AND sr_customer_sk = cs_bill_customer_sk AND sr_item_sk = cs_item_sk AND cs_sold_date_sk = d3.d_date_sk AND d3.d_year IN (1998, 1998 + 1, 1998 + 2) GROUP BY i_item_id, i_item_desc, s_store_id, s_store_name ORDER BY i_item_id, i_item_desc, s_store_id, s_store_name LIMIT 100"
+      },
+      {
+        "queryid": "bf9177fa-470d-44ab-94f2-0d2dde08b280",
+        "query": "WITH customer_total_return AS (SELECT wr_returning_customer_sk AS ctr_customer_sk, ca_state AS ctr_state, SUM(wr_return_amt) AS ctr_total_return FROM default_catalog.optimized.web_returns, default_catalog.optimized.date_dim, default_catalog.optimized.customer_address WHERE wr_returned_date_sk = d_date_sk AND d_year = 2000 AND wr_returning_addr_sk = ca_address_sk GROUP BY wr_returning_customer_sk, ca_state) SELECT c_customer_id, c_salutation, c_first_name, c_last_name, c_preferred_cust_flag, c_birth_day, c_birth_month, c_birth_year, c_birth_country, c_login, c_email_address, ctr_total_return FROM customer_total_return AS ctr1, default_catalog.optimized.customer_address, default_catalog.optimized.customer WHERE ctr1.ctr_total_return > (SELECT AVG(ctr_total_return) * 1.2 FROM customer_total_return AS ctr2 WHERE ctr1.ctr_state = ctr2.ctr_state) AND ca_address_sk = c_current_addr_sk AND ca_state = 'IN' AND ctr1.ctr_customer_sk = c_customer_sk ORDER BY c_customer_id, c_salutation, c_first_name, c_last_name, c_preferred_cust_flag, c_birth_day, c_birth_month, c_birth_year, c_birth_country, c_login, c_email_address, ctr_total_return LIMIT 100"
+      },
+      {
+        "queryid": "8143a19e-8951-47d2-b765-83081e9f4860",
+        "query": "SELECT dt.d_year, item.i_brand_id AS brand_id, item.i_brand AS brand, SUM(ss_ext_discount_amt) AS sum_agg FROM default_catalog.optimized.date_dim AS dt, default_catalog.optimized.store_sales, default_catalog.optimized.item WHERE dt.d_date_sk = store_sales.ss_sold_date_sk AND store_sales.ss_item_sk = item.i_item_sk AND item.i_manufact_id = 427 AND dt.d_moy = 11 GROUP BY dt.d_year, item.i_brand, item.i_brand_id ORDER BY dt.d_year, sum_agg DESC, brand_id LIMIT 100"
+      },
+      {
+        "queryid": "c14c3980-92a9-4a54-976e-08a10c8ffcff",
+        "query": "SELECT * FROM (SELECT w_warehouse_name, i_item_id, SUM(CASE WHEN (CAST(d_date AS DATE) < CAST('2000-05-13' AS DATE)) THEN inv_quantity_on_hand ELSE 0 END) AS inv_before, SUM(CASE WHEN (CAST(d_date AS DATE) >= CAST('2000-05-13' AS DATE)) THEN inv_quantity_on_hand ELSE 0 END) AS inv_after FROM default_catalog.optimized.inventory, default_catalog.optimized.warehouse, default_catalog.optimized.item, default_catalog.optimized.date_dim WHERE i_current_price BETWEEN 0.99 AND 1.49 AND i_item_sk = inv_item_sk AND inv_warehouse_sk = w_warehouse_sk AND inv_date_sk = d_date_sk AND d_date BETWEEN (CAST('2000-05-13' AS DATE) - INTERVAL '30' DAY) AND (CAST('2000-05-13' AS DATE) + INTERVAL '30' DAY) GROUP BY w_warehouse_name, i_item_id) AS x WHERE (CASE WHEN inv_before > 0 THEN inv_after / inv_before ELSE NULL END) BETWEEN 2.0 / 3.0 AND 3.0 / 2.0 ORDER BY w_warehouse_name, i_item_id LIMIT 100"
+      },
+      {
+        "queryid": "97de6a9c-e775-41cd-bc49-229d51f9521b",
+        "query": "SELECT COUNT(DISTINCT cs_order_number) AS \"order count\", SUM(cs_ext_ship_cost) AS \"total shipping cost\", SUM(cs_net_profit) AS \"total net profit\" FROM default_catalog.optimized.catalog_sales AS cs1, default_catalog.optimized.date_dim, default_catalog.optimized.customer_address, default_catalog.optimized.call_center WHERE d_date BETWEEN CAST('2002-3-01' AS DATE) AND (CAST('2002-3-01' AS DATE) + INTERVAL '60' DAY) AND cs1.cs_ship_date_sk = d_date_sk AND cs1.cs_ship_addr_sk = ca_address_sk AND ca_state = 'IA' AND cs1.cs_call_center_sk = cc_call_center_sk AND cc_county IN ('Williamson County', 'Williamson County', 'Williamson County', 'Williamson County', 'Williamson County') AND EXISTS(SELECT * FROM default_catalog.optimized.catalog_sales AS cs2 WHERE cs1.cs_order_number = cs2.cs_order_number AND cs1.cs_warehouse_sk <> cs2.cs_warehouse_sk) AND NOT EXISTS(SELECT * FROM default_catalog.optimized.catalog_returns AS cr1 WHERE cs1.cs_order_number = cr1.cr_order_number) ORDER BY COUNT(DISTINCT cs_order_number) LIMIT 100"
+      },
+      {
+        "queryid": "7e9ed090-e3ee-4d67-aa20-596181100c44",
+        "query": "WITH ss AS (SELECT ca_county, d_qoy, d_year, SUM(ss_ext_sales_price) AS store_sales FROM default_catalog.optimized.store_sales, default_catalog.optimized.date_dim, default_catalog.optimized.customer_address WHERE ss_sold_date_sk = d_date_sk AND ss_addr_sk = ca_address_sk GROUP BY ca_county, d_qoy, d_year), ws AS (SELECT ca_county, d_qoy, d_year, SUM(ws_ext_sales_price) AS web_sales FROM default_catalog.optimized.web_sales, default_catalog.optimized.date_dim, default_catalog.optimized.customer_address WHERE ws_sold_date_sk = d_date_sk AND ws_bill_addr_sk = ca_address_sk GROUP BY ca_county, d_qoy, d_year) SELECT ss1.ca_county, ss1.d_year, ws2.web_sales / ws1.web_sales AS web_q1_q2_increase, ss2.store_sales / ss1.store_sales AS store_q1_q2_increase, ws3.web_sales / ws2.web_sales AS web_q2_q3_increase, ss3.store_sales / ss2.store_sales AS store_q2_q3_increase FROM ss AS ss1, ss AS ss2, ss AS ss3, ws AS ws1, ws AS ws2, ws AS ws3 WHERE ss1.d_qoy = 1 AND ss1.d_year = 2001 AND ss1.ca_county = ss2.ca_county AND ss2.d_qoy = 2 AND ss2.d_year = 2001 AND ss2.ca_county = ss3.ca_county AND ss3.d_qoy = 3 AND ss3.d_year = 2001 AND ss1.ca_county = ws1.ca_county AND ws1.d_qoy = 1 AND ws1.d_year = 2001 AND ws1.ca_county = ws2.ca_county AND ws2.d_qoy = 2 AND ws2.d_year = 2001 AND ws1.ca_county = ws3.ca_county AND ws3.d_qoy = 3 AND ws3.d_year = 2001 AND CASE WHEN ws1.web_sales > 0 THEN ws2.web_sales / ws1.web_sales ELSE NULL END > CASE WHEN ss1.store_sales > 0 THEN ss2.store_sales / ss1.store_sales ELSE NULL END AND CASE WHEN ws2.web_sales > 0 THEN ws3.web_sales / ws2.web_sales ELSE NULL END > CASE WHEN ss2.store_sales > 0 THEN ss3.store_sales / ss2.store_sales ELSE NULL END ORDER BY ss1.d_year"
+      },
+      {
+        "queryid": "d96fdedb-5338-488c-a8e7-dec7606bf313",
+        "query": "WITH ssales AS (SELECT c_last_name, c_first_name, s_store_name, ca_state, s_state, i_color, i_current_price, i_manager_id, i_units, i_size, SUM(ss_net_profit) AS netpaid FROM default_catalog.optimized.store_sales, default_catalog.optimized.store_returns, default_catalog.optimized.store, default_catalog.optimized.item, default_catalog.optimized.customer, default_catalog.optimized.customer_address WHERE ss_ticket_number = sr_ticket_number AND ss_item_sk = sr_item_sk AND ss_customer_sk = c_customer_sk AND ss_item_sk = i_item_sk AND ss_store_sk = s_store_sk AND c_birth_country = UPPER(ca_country) AND s_zip = ca_zip AND s_market_id = 6 GROUP BY c_last_name, c_first_name, s_store_name, ca_state, s_state, i_color, i_current_price, i_manager_id, i_units, i_size) SELECT c_last_name, c_first_name, s_store_name, SUM(netpaid) AS paid FROM ssales WHERE i_color = 'chartreuse' GROUP BY c_last_name, c_first_name, s_store_name HAVING SUM(netpaid) > (SELECT 0.05 * AVG(netpaid) FROM ssales)"
+      },
+      {
+        "queryid": "d2f8845d-28c8-4664-994e-508359df5b94",
+        "query": "SELECT SUM(cs_ext_discount_amt) AS \"excess discount amount\" FROM default_catalog.optimized.catalog_sales, default_catalog.optimized.item, default_catalog.optimized.date_dim WHERE i_manufact_id = 610 AND i_item_sk = cs_item_sk AND d_date BETWEEN CAST('2001-03-04' AS DATE) AND (CAST('2001-03-04' AS DATE) + INTERVAL '90' DAY) AND d_date_sk = cs_sold_date_sk AND cs_ext_discount_amt > (SELECT 1.3 * AVG(cs_ext_discount_amt) FROM default_catalog.optimized.catalog_sales, default_catalog.optimized.date_dim WHERE cs_item_sk = i_item_sk AND d_date BETWEEN CAST('2001-03-04' AS DATE) AND (CAST('2001-03-04' AS DATE) + INTERVAL '90' DAY) AND d_date_sk = cs_sold_date_sk) LIMIT 100"
+      },
+      {
+        "queryid": "d50793d5-5b20-4171-97c8-cfe1f3a56710",
+        "query": "SELECT ca_state, cd_gender, cd_marital_status, cd_dep_count, COUNT(*) AS cnt1, STDDEV_SAMP(cd_dep_count), AVG(cd_dep_count), MAX(cd_dep_count), cd_dep_employed_count, COUNT(*) AS cnt2, STDDEV_SAMP(cd_dep_employed_count), AVG(cd_dep_employed_count), MAX(cd_dep_employed_count), cd_dep_college_count, COUNT(*) AS cnt3, STDDEV_SAMP(cd_dep_college_count), AVG(cd_dep_college_count), MAX(cd_dep_college_count) FROM default_catalog.optimized.customer AS c, default_catalog.optimized.customer_address AS ca, default_catalog.optimized.customer_demographics WHERE c.c_current_addr_sk = ca.ca_address_sk AND cd_demo_sk = c.c_current_cdemo_sk AND EXISTS(SELECT * FROM default_catalog.optimized.store_sales, default_catalog.optimized.date_dim WHERE c.c_customer_sk = ss_customer_sk AND ss_sold_date_sk = d_date_sk AND d_year = 2001 AND d_qoy < 4) AND (EXISTS(SELECT * FROM default_catalog.optimized.web_sales, default_catalog.optimized.date_dim WHERE c.c_customer_sk = ws_bill_customer_sk AND ws_sold_date_sk = d_date_sk AND d_year = 2001 AND d_qoy < 4) OR EXISTS(SELECT * FROM default_catalog.optimized.catalog_sales, default_catalog.optimized.date_dim WHERE c.c_customer_sk = cs_ship_customer_sk AND cs_sold_date_sk = d_date_sk AND d_year = 2001 AND d_qoy < 4)) GROUP BY ca_state, cd_gender, cd_marital_status, cd_dep_count, cd_dep_employed_count, cd_dep_college_count ORDER BY ca_state, cd_gender, cd_marital_status, cd_dep_count, cd_dep_employed_count, cd_dep_college_count LIMIT 100"
+      }
+    ],
+    "quality_score": 70
+  },
+  "error": null
+}
