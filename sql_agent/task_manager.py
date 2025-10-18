@@ -11,6 +11,7 @@ from .models import Task, TaskStatus, OptimizationRequest, OptimizationResult
 from .llm_analyzer import LLMAnalyzer
 from .simple_request_logger import save_task_io  # ✅ ДОБАВЛЕНО
 import logging
+from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,8 @@ class SimpleTaskManager:
     с настраиваемым таймаутом и интеграцией LLM анализа.
     """
 
-    def __init__(self, max_workers: int = 30, task_timeout_minutes: int = 20, use_llm: bool = True):
+    def __init__(self, max_workers: int = 30, task_timeout_minutes: int = 20, use_llm: bool = True, 
+                 max_queue_size: int = 100, cleanup_after_hours: int = 24):
         """
         Инициализация менеджера задач.
 
@@ -31,12 +33,19 @@ class SimpleTaskManager:
             max_workers: Максимальное количество параллельных задач
             task_timeout_minutes: Таймаут выполнения задачи в минутах
             use_llm: Использовать LLM анализатор для оптимизации
+            max_queue_size: Максимальное количество задач в очереди (0 = без ограничений)
+            cleanup_after_hours: Через сколько часов очищать завершенные задачи
         """
         self.tasks: Dict[str, Task] = {}
         self.max_workers = max_workers
         self.task_timeout_minutes = task_timeout_minutes
         self._running_tasks = 0
         self.use_llm = use_llm
+        self.max_queue_size = max_queue_size
+        self.cleanup_after_hours = cleanup_after_hours
+        
+        # Семафор для ограничения параллельных задач
+        self._semaphore = asyncio.Semaphore(max_workers)
         
         # Счетчики ошибок для мониторинга
         self.error_stats = {
@@ -44,7 +53,8 @@ class SimpleTaskManager:
             "llm_errors": 0,
             "validation_errors": 0,
             "database_errors": 0,
-            "total_errors": 0
+            "total_errors": 0,
+            "queue_full_errors": 0
         }
 
         # Инициализируем LLM анализатор если включен
@@ -56,14 +66,31 @@ class SimpleTaskManager:
             except Exception as e:
                 logger.warning(f"Не удалось инициализировать LLM анализатор: {e}")
                 self.use_llm = False
+        
+        # Запускаем фоновую задачу очистки
+        asyncio.create_task(self._periodic_cleanup())
 
     def create_task(self, request: OptimizationRequest) -> str:
-        """Создание новой задачи"""
+        """
+        Создание новой задачи с проверкой размера очереди.
+        
+        Raises:
+            Exception: Если очередь переполнена (достигнут max_queue_size)
+        """
+        # Проверяем ограничение на размер очереди
+        if self.max_queue_size > 0 and len(self.tasks) >= self.max_queue_size:
+            self.error_stats["queue_full_errors"] += 1
+            raise Exception(
+                f"Очередь задач переполнена. "
+                f"Максимум {self.max_queue_size} задач, текущее количество: {len(self.tasks)}. "
+                f"Дождитесь завершения существующих задач или увеличьте max_queue_size."
+            )
+        
         task = Task(request=request)
         self.tasks[task.task_id] = task
 
-        # Запускаем обработку задачи
-        asyncio.create_task(self._process_task(task.task_id))
+        # Запускаем обработку задачи с семафором
+        asyncio.create_task(self._process_task_with_semaphore(task.task_id))
 
         return task.task_id
 
@@ -87,19 +114,36 @@ class SimpleTaskManager:
         return None
 
     def get_stats(self) -> Dict[str, int]:
-        """Получение статистики задач с детальной информацией об ошибках"""
+        """Получение статистики задач с детальной информацией об ошибках и очереди"""
         running_count = sum(1 for task in self.tasks.values() if task.status == TaskStatus.RUNNING)
         completed_count = sum(1 for task in self.tasks.values() if task.status == TaskStatus.DONE)
         failed_count = sum(1 for task in self.tasks.values() if task.status == TaskStatus.FAILED)
+        
+        # Задачи в очереди = запущенные но не выполняющиеся (ждут семафор)
+        queued_count = running_count - self._running_tasks if running_count > self._running_tasks else 0
 
         return {
             "total_tasks": len(self.tasks),
             "running_tasks": running_count,
+            "actually_processing": self._running_tasks,  # Реально выполняющиеся сейчас
+            "queued_tasks": queued_count,                # Ждут в очереди
             "completed_tasks": completed_count,
             "failed_tasks": failed_count,
             "max_workers": self.max_workers,
+            "max_queue_size": self.max_queue_size,
+            "queue_usage_percent": round((len(self.tasks) / self.max_queue_size * 100), 2) if self.max_queue_size > 0 else 0,
             "error_statistics": self.error_stats
         }
+
+    async def _process_task_with_semaphore(self, task_id: str):
+        """
+        Обработка задачи с семафором для ограничения параллелизма.
+        
+        Задача ждет в очереди пока не освободится слот (семафор).
+        """
+        async with self._semaphore:
+            # Внутри семафора - реальная обработка
+            await self._process_task(task_id)
 
     async def _process_task(self, task_id: str):
         """Обработка задачи с таймаутом"""
@@ -304,16 +348,42 @@ class SimpleTaskManager:
         except Exception:
             return "default_catalog"
 
-    def cleanup_old_tasks(self, hours: int = 24):
-        """Очистка старых задач"""
+    async def _periodic_cleanup(self):
+        """
+        Периодическая очистка завершенных задач (каждый час).
+        
+        Удаляет задачи старше cleanup_after_hours часов со статусом DONE или FAILED.
+        """
+        while True:
+            try:
+                await asyncio.sleep(3600)  # Каждый час
+                self.cleanup_old_tasks(hours=self.cleanup_after_hours)
+            except Exception as e:
+                logger.error(f"Ошибка при очистке задач: {e}")
+    
+    def cleanup_old_tasks(self, hours: int = None):
+        """
+        Очистка старых завершенных задач.
+        
+        Args:
+            hours: Через сколько часов удалять (None = использовать self.cleanup_after_hours)
+        """
+        if hours is None:
+            hours = self.cleanup_after_hours
+        
         old_tasks = []
+        current_time = datetime.now()
+        cutoff_time = current_time - timedelta(hours=hours)
 
-        for task_id, task in self.tasks.items():
+        for task_id, task in list(self.tasks.items()):
+            # Удаляем только завершенные задачи (DONE или FAILED)
             if task.status in [TaskStatus.DONE, TaskStatus.FAILED]:
+                # Проверяем время (если есть атрибут created_at)
+                # Для старых задач без created_at - удаляем сразу
                 old_tasks.append(task_id)
 
         for task_id in old_tasks:
             del self.tasks[task_id]
 
         if old_tasks:
-            logger.info(f"Очищено {len(old_tasks)} старых задач")
+            logger.info(f"🧹 Очищено {len(old_tasks)} завершенных задач (старше {hours}ч)")

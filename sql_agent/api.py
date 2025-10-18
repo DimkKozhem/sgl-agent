@@ -130,7 +130,13 @@ async def get_presentation():
 
 
 # Создание менеджера задач с поддержкой LLM
-task_manager = SimpleTaskManager(max_workers=4, task_timeout_minutes=20, use_llm=True)
+task_manager = SimpleTaskManager(
+    max_workers=10,              # Максимум 4 параллельные задачи
+    task_timeout_minutes=20,    # Таймаут 20 минут на задачу
+    use_llm=True,              # Использовать LLM анализатор
+    max_queue_size=100,        # Максимум 100 задач в очереди (защита от переполнения)
+    cleanup_after_hours=24     # Очистка завершенных задач через 24 часа
+)
 
 
 @app.get("/health")
@@ -270,7 +276,7 @@ async def get_metrics():
     
     return {
         "service": "sql-agent",
-        "version": "1.0.0",
+        "version": "1.1.0",
         "uptime": {
             "seconds": round(uptime_seconds, 2),
             "minutes": round(uptime_minutes, 2),
@@ -280,10 +286,18 @@ async def get_metrics():
         "tasks": {
             "total": stats["total_tasks"],
             "running": stats["running_tasks"],
+            "actually_processing": stats.get("actually_processing", 0),
+            "queued": stats.get("queued_tasks", 0),
             "completed": stats["completed_tasks"],
             "failed": stats["failed_tasks"],
             "max_workers": stats["max_workers"],
             "error_rate": round(error_rate * 100, 2)
+        },
+        "queue": {
+            "max_size": stats.get("max_queue_size", 0),
+            "current_size": stats["total_tasks"],
+            "usage_percent": stats.get("queue_usage_percent", 0),
+            "available_slots": max(0, stats.get("max_queue_size", 0) - stats["total_tasks"])
         },
         "errors": stats.get("error_statistics", {}),
         "llm": {
