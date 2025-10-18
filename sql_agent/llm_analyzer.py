@@ -105,9 +105,10 @@ class LLMAnalyzer:
             try:
                 db_connector = DatabaseConnector(request_data.get("url", ""))
                 if db_connector.connect():
-                    logger.info("✅ Подключение к БД установлено, получаем статистику...")
+                    logger.info("✅ Подключение к БД установлено, пытаемся получить статистику...")
 
                     # Получаем статистику по каждой таблице
+                    stats_collected = 0
                     for ddl_item in original_ddl:
                         statement = ddl_item.get("statement", "")
                         table_name = self._extract_table_name_robust(statement)
@@ -115,18 +116,24 @@ class LLMAnalyzer:
                             stats = db_connector.get_table_stats(table_name)
                             column_stats = db_connector.get_column_stats(table_name)
 
-                            table_stats[table_name] = {
-                                "row_count": stats.get("row_count", 0),
-                                "size_bytes": stats.get("total_size_bytes", 0),
-                                "column_stats": column_stats
-                            }
+                            # Считаем только если получили хотя бы что-то
+                            if stats or column_stats:
+                                table_stats[table_name] = {
+                                    "row_count": stats.get("row_count", 0),
+                                    "size_bytes": stats.get("total_size_bytes", 0),
+                                    "column_stats": column_stats
+                                }
+                                stats_collected += 1
 
-                    logger.info(f"📊 Получена статистика для {len(table_stats)} таблиц")
+                    if stats_collected > 0:
+                        logger.info(f"📊 Получена статистика для {stats_collected}/{len(original_ddl)} таблиц")
+                    else:
+                        logger.info(f"ℹ️ Статистика БД недоступна (недостаточно прав), используем только структуру схемы")
                 else:
-                    logger.warning("⚠️ Не удалось подключиться к БД")
+                    logger.warning("⚠️ Не удалось подключиться к БД, продолжаем без статистики")
             except Exception as e:
-                logger.warning(f"⚠️ Ошибка при получении статистики: {e}")
-                logger.info("ℹ️ Продолжаем без статистики данных")
+                logger.warning(f"⚠️ Ошибка при получении статистики БД: {e}")
+                logger.info("ℹ️ Продолжаем оптимизацию на основе структуры схемы")
             finally:
                 if db_connector:
                     db_connector.close()

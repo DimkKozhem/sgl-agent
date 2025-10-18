@@ -30,6 +30,7 @@ class DatabaseConnector:
         self.jdbc_url = jdbc_url
         self.connection = None
         self.db_type = self._detect_db_type(jdbc_url)
+        self._auth_error_logged = False  # Флаг для логирования 401 только один раз
 
     def _detect_db_type(self, url: str) -> str:
         """
@@ -161,7 +162,24 @@ class DatabaseConnector:
             return stats
 
         except Exception as e:
-            logger.error(f"❌ Ошибка получения статистики для {table_name}: {e}")
+            error_msg = str(e)
+            
+            # Проверяем на ошибку авторизации (401)
+            if '401' in error_msg or 'Unauthorized' in error_msg:
+                # Логируем только первый раз
+                if not self._auth_error_logged:
+                    logger.warning(
+                        f"⚠️ Недостаточно прав для получения статистики БД (401 Unauthorized). "
+                        f"Продолжаем без статистики - оптимизация будет базироваться только на структуре схемы."
+                    )
+                    self._auth_error_logged = True
+                # Последующие ошибки только в debug
+                else:
+                    logger.debug(f"Пропускаем статистику для {table_name}: 401 Unauthorized")
+            else:
+                # Другие ошибки логируем как ERROR
+                logger.error(f"❌ Ошибка получения статистики для {table_name}: {e}")
+            
             return {}
 
     def get_column_stats(self, table_name: str, schema: str = None) -> Dict[str, Dict[str, Any]]:
@@ -204,7 +222,16 @@ class DatabaseConnector:
             return stats
 
         except Exception as e:
-            logger.error(f"❌ Ошибка получения статистики колонок: {e}")
+            error_msg = str(e)
+            
+            # Проверяем на ошибку авторизации (401)
+            if '401' in error_msg or 'Unauthorized' in error_msg:
+                # Логируем только первый раз (уже залогировано в get_table_stats)
+                logger.debug(f"Пропускаем статистику колонок для {table_name}: 401 Unauthorized")
+            else:
+                # Другие ошибки логируем как ERROR
+                logger.error(f"❌ Ошибка получения статистики колонок для {table_name}: {e}")
+            
             return {}
 
     def close(self):
