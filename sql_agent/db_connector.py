@@ -31,6 +31,7 @@ class DatabaseConnector:
         self.connection = None
         self.db_type = self._detect_db_type(jdbc_url)
         self._auth_error_logged = False  # Флаг для логирования 401 только один раз
+        self._connection_failed = False  # Флаг для отслеживания проблем с подключением
 
     def _detect_db_type(self, url: str) -> str:
         """
@@ -122,6 +123,11 @@ class DatabaseConnector:
             logger.warning("⚠️ Нет подключения к БД")
             return {}
 
+        # Если предыдущая попытка не удалась из-за проблем с подключением - не пытаемся снова
+        if self._connection_failed:
+            logger.debug(f"Пропускаем статистику для {table_name}: подключение недоступно")
+            return {}
+
         try:
             cursor = self.connection.cursor()
 
@@ -164,8 +170,19 @@ class DatabaseConnector:
         except Exception as e:
             error_msg = str(e)
             
+            # Проверяем на проблемы с подключением (Connection refused, Connection error и т.д.)
+            if 'Connection refused' in error_msg or 'Connection error' in error_msg or 'Failed to establish a new connection' in error_msg:
+                # Устанавливаем флаг, чтобы не пытаться больше подключаться
+                if not self._connection_failed:
+                    self._connection_failed = True
+                    logger.warning(
+                        f"⚠️ Не удалось подключиться к БД (Connection refused). "
+                        f"Пропускаем получение статистики для всех таблиц."
+                    )
+                else:
+                    logger.debug(f"Пропускаем статистику для {table_name}: подключение недоступно")
             # Проверяем на ошибку авторизации (401)
-            if '401' in error_msg or 'Unauthorized' in error_msg:
+            elif '401' in error_msg or 'Unauthorized' in error_msg:
                 # Логируем только первый раз
                 if not self._auth_error_logged:
                     logger.warning(
@@ -185,6 +202,11 @@ class DatabaseConnector:
     def get_column_stats(self, table_name: str, schema: str = None) -> Dict[str, Dict[str, Any]]:
         """Получает статистику по колонкам"""
         if not self.connection:
+            return {}
+
+        # Если предыдущая попытка не удалась из-за проблем с подключением - не пытаемся снова
+        if self._connection_failed:
+            logger.debug(f"Пропускаем статистику колонок для {table_name}: подключение недоступно")
             return {}
 
         try:
@@ -224,8 +246,19 @@ class DatabaseConnector:
         except Exception as e:
             error_msg = str(e)
             
+            # Проверяем на проблемы с подключением
+            if 'Connection refused' in error_msg or 'Connection error' in error_msg or 'Failed to establish a new connection' in error_msg:
+                # Устанавливаем флаг (если еще не установлен)
+                if not self._connection_failed:
+                    self._connection_failed = True
+                    logger.warning(
+                        f"⚠️ Не удалось подключиться к БД (Connection refused). "
+                        f"Пропускаем получение статистики для всех таблиц."
+                    )
+                else:
+                    logger.debug(f"Пропускаем статистику колонок для {table_name}: подключение недоступно")
             # Проверяем на ошибку авторизации (401)
-            if '401' in error_msg or 'Unauthorized' in error_msg:
+            elif '401' in error_msg or 'Unauthorized' in error_msg:
                 # Логируем только первый раз (уже залогировано в get_table_stats)
                 logger.debug(f"Пропускаем статистику колонок для {table_name}: 401 Unauthorized")
             else:

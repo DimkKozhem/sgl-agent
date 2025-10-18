@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.middleware.cors import CORSMiddleware
 import os
 import logging
 import json
@@ -41,6 +42,15 @@ app = FastAPI(
     title="SQL-agent",
     description="REST API для анализа и оптимизации структуры базы данных",
     version="1.0.0"
+)
+
+# CORS middleware - разрешаем запросы с любых источников
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Время запуска сервиса для подсчета uptime
@@ -113,6 +123,27 @@ async def json_decode_exception_handler(request: Request, exc: json.JSONDecodeEr
     )
 
 
+# Глобальный обработчик всех необработанных исключений
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """
+    Глобальный обработчик всех необработанных исключений.
+    Предотвращает разрыв соединения и всегда возвращает JSON ответ.
+    """
+    # Логируем полный стек ошибки
+    logger.exception(f"Необработанное исключение при обработке {request.method} {request.url.path}")
+    
+    # Возвращаем JSON вместо разрыва соединения
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "internal-error",
+            "detail": f"{exc.__class__.__name__}: {str(exc)}",
+            "path": str(request.url.path)
+        }
+    )
+
+
 # Монтируем статическую директорию
 static_dir = os.path.join(os.path.dirname(__file__), "..", "static")
 if os.path.exists(static_dir):
@@ -132,26 +163,78 @@ async def get_presentation():
 # Создание менеджера задач с поддержкой LLM
 task_manager = SimpleTaskManager(
     max_workers=10,              # Максимум 10 параллельные задачи
-    task_timeout_minutes=20,    # Таймаут 20 минут на задачу
+    task_timeout_minutes=15,    # Таймаут 15 минут на задачу (согласно ТЗ)
     use_llm=True,              # Использовать LLM анализатор
-    max_queue_size=100,        # Максимум xзадач в очереди (защита от переполнения)
-    cleanup_after_hours=72     # Очистка завершенных задач через x часа
+    max_queue_size=100,        # Максимум задач в очереди (защита от переполнения)
+    cleanup_after_hours=72     # Очистка завершенных задач через 72 часа
 )
 
 
 @app.get("/health")
 async def health_check():
     """
-    Проверка состояния сервиса.
+    Расширенная проверка состояния сервиса и зависимостей.
 
     Returns:
-        dict: Статус сервиса, версия и статистика задач
+        dict: Детальный статус всех компонентов системы
     """
     stats = task_manager.get_stats()
+    
+    # Проверка LLM подключения
+    llm_status = "unavailable"
+    llm_error = None
+    if task_manager.llm_analyzer is not None:
+        try:
+            # Простая проверка доступности API ключа
+            if task_manager.llm_analyzer.api_key:
+                llm_status = "configured"
+            else:
+                llm_status = "no_api_key"
+                llm_error = "API ключ не настроен"
+        except Exception as e:
+            llm_status = "error"
+            llm_error = str(e)
+    
+    # Проверка очереди задач
+    queue_status = "healthy"
+    if stats["total_tasks"] >= task_manager.max_queue_size * 0.9:
+        queue_status = "nearly_full"
+    elif stats["total_tasks"] >= task_manager.max_queue_size:
+        queue_status = "full"
+    
+    # Общий статус системы
+    overall_status = "healthy"
+    if llm_status == "error" or llm_status == "no_api_key":
+        overall_status = "degraded"
+    if queue_status == "full":
+        overall_status = "critical"
+    
     return {
-        "status": "healthy",
-        "version": "1.0.0",
-        "stats": stats
+        "status": overall_status,
+        "version": "1.2.0",
+        "uptime_seconds": round(time.time() - startup_time, 2),
+        "components": {
+            "api": "healthy",
+            "task_manager": "healthy",
+            "llm": {
+                "status": llm_status,
+                "provider": "openrouter" if llm_status == "configured" else None,
+                "model": "nvidia/nemotron-nano-9b-v2" if llm_status == "configured" else None,
+                "error": llm_error
+            },
+            "queue": {
+                "status": queue_status,
+                "current_size": stats["total_tasks"],
+                "max_size": task_manager.max_queue_size,
+                "usage_percent": round(stats["total_tasks"] / task_manager.max_queue_size * 100, 1) if task_manager.max_queue_size > 0 else 0
+            }
+        },
+        "tasks": {
+            "total": stats["total_tasks"],
+            "running": stats["running_tasks"],
+            "completed": stats["completed_tasks"],
+            "failed": stats["failed_tasks"]
+        }
     }
 
 

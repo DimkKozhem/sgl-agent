@@ -18,6 +18,8 @@ import json
 import logging
 import os
 import re
+import hashlib
+from datetime import datetime
 from typing import Dict, Any, Optional, Tuple, List
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
@@ -104,6 +106,11 @@ class LLMAnalyzer:
 
             logger.info(f"Используем каталог: {catalog_name}")
 
+            # ====== ГЕНЕРАЦИЯ УНИКАЛЬНОГО ИМЕНИ СХЕМЫ ======
+            # Согласно ТЗ: используем уникальное имя схемы для каждого запроса
+            unique_schema_name = self._generate_unique_schema_name(catalog_name, request_data)
+            logger.info(f"✅ Сгенерировано уникальное имя схемы: {unique_schema_name}")
+
             # ====== ПОДКЛЮЧЕНИЕ К БД ДЛЯ СТАТИСТИКИ ======
             from .db_connector import DatabaseConnector
 
@@ -158,7 +165,7 @@ class LLMAnalyzer:
             logger.info("ШАГ 2/4: Генерация DDL (детерминированная)")
             logger.info("=" * 70)
 
-            new_ddl = self._generate_ddl_deterministic(tables_analysis, catalog_name)
+            new_ddl = self._generate_ddl_deterministic(tables_analysis, catalog_name, unique_schema_name)
 
             # ====== ШАГ 3: Генерируем миграции ======
             logger.info("=" * 70)
@@ -168,6 +175,7 @@ class LLMAnalyzer:
             mig_payload = {
                 "url": request_data.get("url"),
                 "catalog_name": catalog_name,  # Явно передаем каталог
+                "schema_name": unique_schema_name,  # Уникальное имя новой схемы
                 "old_ddl": original_ddl,
                 "new_ddl": new_ddl,
             }
@@ -189,7 +197,8 @@ class LLMAnalyzer:
             optimized_queries = self._optimize_queries_parallel(
                 request_data.get("queries", []),
                 new_ddl,
-                catalog_name
+                catalog_name,
+                unique_schema_name
             )
 
             # Формируем результат
@@ -208,6 +217,11 @@ class LLMAnalyzer:
                 },
             }
 
+            # ====== ВАЛИДАЦИЯ РЕЗУЛЬТАТА ======
+            # Проверка запрещенных конструкций (MATERIALIZED VIEW, GRANT, и т.д.)
+            self._validate_no_forbidden_constructs(result)
+            
+            # Проверка полных путей catalog.schema.table
             self._validate_full_paths(result, catalog_name)
 
             # ✅ АВТОМАТИЧЕСКАЯ ОЦЕНКА КАЧЕСТВА
@@ -504,14 +518,23 @@ Rules:
     def _generate_ddl_deterministic(
             self,
             tables_analysis: List[Dict[str, Any]],
-            catalog_name: str
+            catalog_name: str,
+            schema_name: str
     ) -> List[Dict[str, str]]:
-        """Детерминированная генерация DDL на основе анализа LLM."""
+        """
+        Детерминированная генерация DDL на основе анализа LLM.
+        
+        Args:
+            tables_analysis: Анализ таблиц от LLM
+            catalog_name: Имя каталога
+            schema_name: Уникальное имя новой схемы (например, optimized_20241018_a3f2b1)
+        """
 
         ddl_statements = []
 
+        # Первая команда - CREATE SCHEMA с уникальным именем (согласно ТЗ)
         ddl_statements.append({
-            "statement": f"CREATE SCHEMA IF NOT EXISTS {catalog_name}.optimized"
+            "statement": f"CREATE SCHEMA {catalog_name}.{schema_name}"
         })
 
         for analysis in tables_analysis:
@@ -548,7 +571,8 @@ Rules:
 
             with_clause = ",\n  ".join(with_parts)
 
-            ddl = f"""CREATE TABLE {catalog_name}.optimized.{table_name} (
+            # Используем полный путь: catalog.schema.table (согласно ТЗ)
+            ddl = f"""CREATE TABLE {catalog_name}.{schema_name}.{table_name} (
   {columns_sql}
 ) WITH (
   {with_clause}
@@ -646,9 +670,18 @@ Rules:
             self,
             queries: List[Dict[str, Any]],
             new_ddl: List[Dict[str, str]],
-            catalog_name: str
+            catalog_name: str,
+            schema_name: str
     ) -> List[Dict[str, Any]]:
-        """Параллельно переписывает и оптимизирует запросы."""
+        """
+        Параллельно переписывает и оптимизирует запросы.
+        
+        Args:
+            queries: Список запросов для оптимизации
+            new_ddl: Новые DDL statements
+            catalog_name: Имя каталога
+            schema_name: Уникальное имя новой схемы
+        """
 
         table_metadata = self._extract_table_metadata(new_ddl)
 
@@ -662,7 +695,8 @@ Rules:
 
                 query_with_new_paths = self._replace_table_paths_robust(
                     original_query,
-                    catalog_name
+                    catalog_name,
+                    schema_name
                 )
 
                 optimized_query = self._apply_real_optimizations(
@@ -915,8 +949,15 @@ Rules:
         upper_query = query.upper()
         return any(kw in upper_query for kw in ["GROUP BY", "COUNT(", "SUM(", "AVG(", "MAX(", "MIN(", "HAVING"])
 
-    def _replace_table_paths_robust(self, query: str, catalog_name: str) -> str:
-        """Заменяет пути таблиц через sqlglot или regex."""
+    def _replace_table_paths_robust(self, query: str, catalog_name: str, schema_name: str) -> str:
+        """
+        Заменяет пути таблиц через sqlglot или regex на новую схему.
+        
+        Args:
+            query: SQL запрос
+            catalog_name: Имя каталога
+            schema_name: Уникальное имя новой схемы
+        """
         if self.enable_sql_parsing:
             try:
                 parsed = sqlglot.parse_one(query, dialect="trino")
@@ -925,8 +966,9 @@ Rules:
                 try:
                     for table in parsed.find_all(sqlglot.exp.Table):
                         if table.catalog and table.db:
-                            if table.db.lower() != "optimized":
-                                table.set("db", sqlglot.exp.Identifier(this="optimized"))
+                            # Заменяем старую схему (public, default, и т.д.) на новую уникальную
+                            if not table.db.this.startswith("optimized_"):
+                                table.set("db", sqlglot.exp.Identifier(this=schema_name))
                                 table.set("catalog", sqlglot.exp.Identifier(this=catalog_name))
                 except (AttributeError, TypeError) as inner_e:
                     logger.debug(f"Cannot iterate tables: {inner_e}, fallback to regex")
@@ -936,12 +978,14 @@ Rules:
             except Exception as e:
                 logger.debug(f"sqlglot path replacement failed, fallback to regex: {e}")
 
+        # Regex fallback: заменяем catalog.schema.table на catalog.new_schema.table
         pattern = r'(\w+)\.(\w+)\.(\w+)'
 
         def replace_path(match):
-            cat, schema, table = match.groups()
-            if schema.lower() != 'optimized':
-                return f"{catalog_name}.optimized.{table}"
+            cat, old_schema, table = match.groups()
+            # Заменяем любую старую схему на новую уникальную
+            if not old_schema.startswith('optimized_'):
+                return f"{catalog_name}.{schema_name}.{table}"
             return match.group(0)
 
         return re.sub(pattern, replace_path, query)
@@ -1145,32 +1189,36 @@ Rules:
 
     @staticmethod
     def _system_prompt_migrations() -> str:
-        """Промпт для генерации миграций."""
+        """Промпт для генерации миграций с поддержкой уникальных схем."""
         return (
             "You are an expert data migration specialist for LARGE-SCALE database optimization.\n"
             "Your task: Create comprehensive migration statements to transfer data from old DDL to new optimized structure.\n"
             "\n"
             "CRITICAL REQUIREMENTS:\n"
-            "1. USE the 'catalog_name' field from input payload - do NOT extract from URL\n"
-            "2. MANDATORY: ALL paths must use format: <catalog_name>.optimized.<table_name>\n"
-            "3. Extract table names from old_ddl and new_ddl\n"
-            "4. Migrate ALL columns from original tables to optimized tables\n"
-            "5. Include SELECT COUNT(*) validation queries for each migration\n"
+            "1. USE the 'catalog_name' and 'schema_name' fields from input payload\n"
+            "2. MANDATORY: ALL NEW table paths must use: <catalog_name>.<schema_name>.<table_name>\n"
+            "3. Extract table names from old_ddl (e.g., catalog.public.table)\n"
+            "4. Extract table names from new_ddl (e.g., catalog.optimized_TIMESTAMP.table)\n"
+            "5. Migrate ALL columns from old tables to new tables\n"
+            "6. Include SELECT COUNT(*) validation queries after each migration\n"
             "\n"
-            "PATH EXAMPLES:\n"
-            "- If catalog_name='flights': flights.optimized.flights_table\n"
-            "- If catalog_name='analytics': analytics.optimized.users\n"
-            "- If old table was 'flights.public.flights', new is 'flights.optimized.flights'\n"
+            "PATH FORMAT:\n"
+            "- Old (source): <catalog>.public.<table> or <catalog>.default.<table>\n"
+            "- New (target): <catalog>.<schema_name>.<table>\n"
+            "\n"
+            "EXAMPLE (if catalog_name='flights', schema_name='optimized_20241018_a3f2b1'):\n"
+            "- Old: flights.public.bookings\n"
+            "- New: flights.optimized_20241018_a3f2b1.bookings\n"
             "\n"
             "MANDATORY JSON OUTPUT FORMAT:\n"
             "{\n"
             '  "migrations": [\n'
-            '    {"statement": "INSERT INTO <catalog_name>.optimized.<table> SELECT * FROM <catalog_name>.public.<table>"},\n'
-            '    {"statement": "SELECT COUNT(*) as validation FROM <catalog_name>.optimized.<table>"}\n'
+            '    {"statement": "INSERT INTO <catalog>.<schema_name>.<table> SELECT * FROM <catalog>.public.<table>"},\n'
+            '    {"statement": "SELECT COUNT(*) as validation FROM <catalog>.<schema_name>.<table>"}\n'
             '  ]\n'
             "}\n"
             "\n"
-            "CRITICAL: Replace <catalog_name> with the actual catalog_name from input!\n"
+            "CRITICAL: Use EXACT catalog_name and schema_name from the input payload!\n"
             "Return ONLY valid JSON, no markdown, no explanations."
         )
 
@@ -1242,6 +1290,33 @@ Rules:
         return prompt
 
     @staticmethod
+    def _generate_unique_schema_name(catalog_name: str, request_data: Dict[str, Any]) -> str:
+        """
+        Генерирует уникальное имя схемы для оптимизированных таблиц.
+        
+        Формат: optimized_<timestamp>_<hash>
+        Пример: optimized_20241018151234_a3f2b1
+        
+        Args:
+            catalog_name: Имя каталога
+            request_data: Данные запроса для хеширования
+            
+        Returns:
+            str: Уникальное имя схемы
+        """
+        # Timestamp в формате YYYYMMDDHHmmSS
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        
+        # Короткий хеш от request_data для уникальности
+        request_str = json.dumps(request_data, sort_keys=True)
+        short_hash = hashlib.md5(request_str.encode()).hexdigest()[:6]
+        
+        schema_name = f"optimized_{timestamp}_{short_hash}"
+        
+        logger.debug(f"Сгенерировано уникальное имя схемы: {catalog_name}.{schema_name}")
+        return schema_name
+
+    @staticmethod
     def _validate_input(data: Dict[str, Any]) -> None:
         if "ddl" not in data or not isinstance(data["ddl"], list):
             raise LLMAnalyzerError("Входной объект должен содержать массив 'ddl'")
@@ -1249,20 +1324,74 @@ Rules:
             raise LLMAnalyzerError("Входной объект должен содержать массив 'queries'")
 
     @staticmethod
+    def _validate_no_forbidden_constructs(result: Dict[str, Any]) -> None:
+        """
+        Валидация отсутствия запрещенных конструкций согласно ТЗ.
+        
+        Запрещено:
+        - MATERIALIZED VIEW
+        - CREATE USER / CREATE ROLE
+        - GRANT / REVOKE
+        - DDL операции безопасности
+        """
+        forbidden_keywords = [
+            "MATERIALIZED VIEW",
+            "CREATE USER",
+            "CREATE ROLE",
+            "GRANT ",
+            "REVOKE ",
+            "DROP DATABASE",
+            "DROP CATALOG",
+            "ALTER USER",
+            "ALTER ROLE"
+        ]
+        
+        errors = []
+        
+        # Проверяем DDL
+        for i, ddl_item in enumerate(result.get("ddl", [])):
+            statement = ddl_item.get("statement", "").upper()
+            for keyword in forbidden_keywords:
+                if keyword in statement:
+                    errors.append(
+                        f"DDL[{i}] содержит запрещенную конструкцию '{keyword}': "
+                        f"{statement[:100]}..."
+                    )
+        
+        # Проверяем миграции
+        for i, mig_item in enumerate(result.get("migrations", [])):
+            statement = mig_item.get("statement", "").upper()
+            for keyword in forbidden_keywords:
+                if keyword in statement:
+                    errors.append(
+                        f"Migration[{i}] содержит запрещенную конструкцию '{keyword}': "
+                        f"{statement[:100]}..."
+                    )
+        
+        if errors:
+            raise LLMAnalyzerError(
+                f"Обнаружены запрещенные конструкции: {len(errors)} ошибок",
+                {"forbidden_constructs": errors}
+            )
+        
+        logger.debug("✅ Проверка запрещенных конструкций пройдена")
+
+    @staticmethod
     def _validate_full_paths(result: Dict[str, Any], catalog_name: str) -> None:
         """
-        Валидация путей с учетом разных форматов каталогов.
+        Валидация путей с учетом уникальных имен схем.
         
         Принимает:
-        - catalog.optimized.table (строгое соответствие)
-        - any_catalog.optimized.table (любой каталог с optimized)
+        - catalog.optimized_TIMESTAMP_HASH.table (уникальное имя согласно ТЗ)
+        - any_catalog.optimized_*.table (любое имя схемы начинающееся с optimized_)
         - CREATE SCHEMA statements (пропускаем)
         """
-        # Гибкий паттерн: любой каталог + .optimized. + имя таблицы
-        optimized_pattern = r'\w+\.optimized\.\w+'
+        # Гибкий паттерн: любой каталог + .optimized_* + имя таблицы
+        # Поддерживает как optimized_20241018_a3f2b1, так и старое optimized
+        optimized_pattern = r'\w+\.optimized[_\w]*\.\w+'
         
         def has_optimized_path(text: str) -> bool:
-            """Проверяет наличие пути с .optimized."""
+            """Проверяет наличие пути с .optimized* (с любым суффиксом или без)."""
             return bool(re.search(optimized_pattern, text))
         
         def is_schema_statement(text: str) -> bool:

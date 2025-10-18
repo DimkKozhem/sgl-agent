@@ -178,6 +178,10 @@ class SimpleTaskManager:
                 timeout=self.task_timeout_minutes * 60  # Конвертируем минуты в секунды
             )
 
+            # ✅ Устанавливаем статус DONE только после успешного выполнения
+            task.status = TaskStatus.DONE
+            logger.info(f"Задача {task_id} выполнена успешно с LLM анализом")
+
             # ✅ ДОБАВЛЕНО: Логирование успешного результата
             if task.result:
                 output_data = {
@@ -203,7 +207,7 @@ class SimpleTaskManager:
 
         except Exception as e:
             error_msg = f"Ошибка при выполнении задачи {task_id}: {str(e)}"
-            logger.error(error_msg)
+            logger.error(error_msg, exc_info=True)  # ✅ Добавлен полный traceback
             task.status = TaskStatus.FAILED
             task.error = error_msg
             
@@ -223,6 +227,7 @@ class SimpleTaskManager:
 
         finally:
             self._running_tasks -= 1
+            logger.debug(f"Задача {task_id} завершена. Активных задач: {self._running_tasks}")
 
     async def _execute_task(self, task_id: str):
         """Выполнение задачи без таймаута"""
@@ -247,8 +252,9 @@ class SimpleTaskManager:
             # Создаем результат из ответа LLM
             result = self._create_result_from_llm(llm_result, task.request)
 
-            # Логируем успешное выполнение
-            logger.info(f"Задача {task_id} выполнена успешно с LLM анализом")
+            # Логируем информацию о качестве
+            if hasattr(result, 'quality_score') and result.quality_score:
+                logger.info(f"📊 Оценка качества из LLM анализа: {result.quality_score}/100")
 
         else:
             logger.info(f"Используем простую логику для задачи {task_id}")
@@ -256,8 +262,8 @@ class SimpleTaskManager:
             await asyncio.sleep(2)  # Имитация обработки
             result = self._create_simple_result(task.request)
 
+        # Сохраняем результат (статус DONE устанавливается в _process_task после wait_for)
         task.result = result
-        task.status = TaskStatus.DONE
 
     def _create_result_from_llm(self, llm_result: dict, request: OptimizationRequest) -> OptimizationResult:
         """Создание результата из ответа LLM"""
