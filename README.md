@@ -216,6 +216,19 @@ curl -X POST https://skripkahack.ru/new \
 
 📚 **Документация:** [QUICKSTART.md](QUICKSTART.md) | [DEPLOYMENT.md](DEPLOYMENT.md)
 
+#### 📡 Доступные Endpoints
+
+| Endpoint | Метод | Описание | Пример |
+|----------|-------|----------|--------|
+| **[/health](https://skripkahack.ru/health)** | GET | Проверка состояния сервиса | `curl https://skripkahack.ru/health` |
+| **[/metrics](https://skripkahack.ru/metrics)** | GET | Детальные метрики и статистика | `curl https://skripkahack.ru/metrics` |
+| **/new** | POST | Создание задачи оптимизации | `curl -X POST https://skripkahack.ru/new -d @data.json` |
+| **/status** | GET | Проверка статуса задачи | `curl https://skripkahack.ru/status?task_id={id}` |
+| **/getresult** | GET | Получение результата | `curl https://skripkahack.ru/getresult?task_id={id}` |
+| **[/static/pipeline.html](https://skripkahack.ru/static/pipeline.html)** | GET | Интерактивная визуализация пайплайна | Открыть в браузере |
+
+**🔗 Полная документация API:** [API Reference](#-api-reference)
+
 ---
 
 ### Требования для локального развертывания
