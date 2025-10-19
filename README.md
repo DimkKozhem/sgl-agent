@@ -4,12 +4,13 @@
 
 **Автоматическая оптимизация структуры БД с использованием искусственного интеллекта**
 
-[![Production Ready](https://img.shields.io/badge/status-production%20ready-success?style=for-the-badge)](.)
+[![Production Server](https://img.shields.io/badge/production-skripkahack.ru-success?style=for-the-badge)](https://skripkahack.ru)
+[![Production Ready](https://img.shields.io/badge/status-ready-success?style=for-the-badge)](.)
 [![Tests](https://img.shields.io/badge/tests-19%2F19%20passing-success?style=for-the-badge)](tests/)
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue?style=for-the-badge)](.)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.118-009688?style=for-the-badge)](.)
 
-**[Быстрый старт](#-быстрый-старт)** • **[Локальный GPU](#-локальный-llm-на-nvidia-l4)** • **[API](#-api-reference)** • **[Production](#-production-deployment)**
+**[Быстрый старт](#-быстрый-старт)** • **[Production сервер](https://skripkahack.ru)** • **[Локальный GPU](#-локальный-llm-на-nvidia-l4)** • **[API](#-api-reference)** • **[Deployment](#-production-deployment)**
 
 ---
 
@@ -195,7 +196,29 @@ LIMIT 10000
 
 ## ⚡ Быстрый старт
 
-### Требования
+### 🌐 Вариант 0: Использовать готовый Production сервер (Самый быстрый!)
+
+**SQL-agent уже развернут и доступен:**
+
+```bash
+# Проверка работоспособности
+curl https://skripkahack.ru/health
+
+# Создание задачи
+curl -X POST https://skripkahack.ru/new \
+  -H "Content-Type: application/json" \
+  -d @datasets/linear_schema.json
+
+# → {"taskid": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"}
+```
+
+**Готово!** 🎉 Можно сразу использовать API без установки.
+
+📚 **Документация:** [QUICKSTART.md](QUICKSTART.md) | [DEPLOYMENT.md](DEPLOYMENT.md)
+
+---
+
+### Требования для локального развертывания
 
 - **Python 3.8+**
 - **Один из вариантов:**
@@ -1073,6 +1096,72 @@ echo "   Запросов:    $(jq '.queries | length' result_${TASK_ID}.json)"
 ---
 
 ## 🚢 Production Deployment
+
+### 🌐 Готовый Production сервер
+
+**SQL-agent уже развернут и работает на production сервере!**
+
+**URL:** https://skripkahack.ru  
+**Статус:** ✅ Production Ready  
+**Конфигурация:** 4 CPU, 3 GB RAM, 6 workers
+
+#### Быстрая проверка:
+
+```bash
+# Health check
+curl https://skripkahack.ru/health
+
+# Метрики
+curl https://skripkahack.ru/metrics
+
+# Тестовый запрос
+curl -X POST https://skripkahack.ru/new \
+  -H "Content-Type: application/json" \
+  -d @datasets/linear_schema.json
+```
+
+#### Доступная документация:
+
+- **DEPLOYMENT.md** — полное руководство по развертыванию
+- **QUICKSTART.md** — быстрый старт использования API
+- **LOGS_GUIDE.md** — работа с логами сервера
+- **SERVER_RESOURCES.md** — требования к ресурсам
+
+#### Скрипты автоматизации:
+
+```bash
+# Развертывание на новом сервере (автоматизация)
+./deploy_to_server.sh
+
+# Настройка количества воркеров
+./configure_workers.sh 6
+
+# Скачивание логов с сервера
+./get_logs.sh
+
+# Проверка состояния сервера
+./check_server.sh
+```
+
+#### SSH доступ:
+
+```bash
+ssh root@31.172.73.121
+
+# Управление сервисом
+systemctl status sql-agent
+systemctl restart sql-agent
+journalctl -u sql-agent -f
+```
+
+**Особенности развертывания:**
+- ✅ SSL сертификат (Let's Encrypt)
+- ✅ Nginx reverse proxy
+- ✅ Systemd автозапуск
+- ✅ Автоматическая ротация логов
+- ✅ Очистка завершенных задач каждый час
+
+---
 
 ### Docker (Рекомендуется)
 
