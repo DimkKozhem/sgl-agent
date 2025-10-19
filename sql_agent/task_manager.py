@@ -246,8 +246,8 @@ class SimpleTaskManager:
                 "queries": task.request.queries
             }
 
-            # Анализируем с помощью LLM
-            llm_result = self.llm_analyzer.analyze_database(request_data)
+            # Анализируем с помощью LLM (в отдельном потоке, чтобы не блокировать event loop)
+            llm_result = await asyncio.to_thread(self.llm_analyzer.analyze_database, request_data)
 
             # Создаем результат из ответа LLM
             result = self._create_result_from_llm(llm_result, task.request)
