@@ -10,7 +10,7 @@
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue?style=for-the-badge)](.)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.118-009688?style=for-the-badge)](.)
 
-**[Быстрый старт](#-быстрый-старт)** • **[Production сервер](https://skripkahack.ru)** • **[Локальный GPU](#-локальный-llm-на-nvidia-l4)** • **[API](#-api-reference)** • **[Deployment](#-production-deployment)**
+**[Быстрый старт](#-быстрый-старт)** • **[Production сервер](https://skripkahack.ru)** • **[Pipeline визуализация](https://skripkahack.ru/static/pipeline.html)** • **[API](#-api-reference)** • **[Deployment](#-production-deployment)**
 
 ---
 
